@@ -1,0 +1,20 @@
+<header th:fragment="header">
+    <div class="logo" th:onclick="|window.location.href='/'|">Dinarex</div>
+    <nav>
+        <a href="/exchange" th:href="@{/trading}">Биржа</a>
+        <a href="/p2p">P2P</a>
+        <a href="/representatives">Представительства</a>
+        <a href="/news">Новости</a>
+        <a href="/academy">Академия</a>
+        <div th:if="${#authorization.expression('isAuthenticated()')}">
+            <a href="/profile">Аккаунт</a>
+        </div>
+        <div th:unless="${#authorization.expression('isAuthenticated()')}">
+            <div class="auth-buttons">
+                <button class="register-button" th:onclick="|window.location.href='/auth/register'|">Регистрация</button>
+                <button class="login-button" th:onclick="|window.location.href='/auth/login'|">Вход</button>
+            </div>
+        </div>
+    </nav>
+    <div class="support-icon">Поддержка</div>
+</header>

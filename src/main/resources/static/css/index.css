@@ -1,0 +1,156 @@
+.crypto-exchange {
+    display: flex;
+    justify-content: space-between;
+    padding: 40px;
+    background: linear-gradient(to bottom right, #373943, #2c4a40);
+    color: white;
+    gap: 30px;
+}
+
+.exchange-info {
+    width: 50%;
+    flex: 0 0 50%;
+}
+
+.exchange-info h1 {
+    font-size: 42px;
+    margin-bottom: 10px;
+}
+
+.features-list {
+    list-style: none;
+    padding-left: 0;
+    margin-top: 30px;
+}
+
+.features-list li {
+    margin-bottom: 15px;
+    position: relative;
+    padding-left: 30px;
+}
+
+.features-list li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #38b67c;
+    background-color: rgba(56, 182, 124, 0.2);
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 12px;
+}
+
+.exchange-visual {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.microchips-image {
+    max-width: 75%;
+    height: auto;
+}
+
+.fee-info {
+    margin-top: 20px;
+    font-size: 14px;
+    text-align: center;
+}
+
+/* Exchange rates section */
+.exchange-rates {
+    display: flex;
+    justify-content: space-between;
+    padding: 20px 40px;
+    background-color: #2d3039;
+    color: white;
+}
+
+.sell-rates, .buy-rates {
+    flex: 1;
+}
+
+.rates-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.rates-list span {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.target-audience {
+    padding: 40px;
+    background-color: #f5f5f5;
+    text-align: center;
+}
+
+.target-audience-title {
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+.audience-container {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.audience-section {
+    text-align: center;
+    max-width: 300px;
+}
+
+.audience-section img {
+    max-width: 100%;
+    height: auto;
+    margin-bottom: 20px;
+}
+
+.audience-section h2 {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+.audience-section ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.audience-section li {
+    margin-top: 10px;
+    position: relative;
+    padding-left: 20px;
+}
+
+.audience-section li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #38b67c;
+}
+
+.chat-button {
+    display: block;
+    margin: 20px auto;
+    background-color: #38b67c;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-size: 16px;
+    transition: background-color 0.3s;
+    width: 25%;
+}
+
+.chat-button:hover {
+    background-color: #2e9d6a;
+}

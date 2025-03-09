@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Главная</title>
+    <link rel="stylesheet" href="/css/index.css">
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/header.css">
+    <link rel="stylesheet" href="/css/footer.css">
+    <link rel="stylesheet" href="/css/trading.css">
+</head>
+<body>
+<header th:replace="~{fragments/header :: header}"></header>
+<main class="container">
+    <!-- Currency tabs -->
+    <div class="currency-container">
+        <a th:href="@{/trading/{currencyToSell}/{currencyToBuy}(currencyToSell=${activeCurrencyToBuy}, currencyToBuy=${activeCurrencyToSell})}">
+            <button class="swap-btn">
+                <span class="swap-icon">⇄</span>
+                <span class="swap-text-container">
+                    <span>Поменять</span>
+                    <span>местами</span>
+                </span>
+            </button>
+        </a>
+        <div class="currency-tabs">
+            <div class="base-currencies">
+                <th:block th:each="currencyToSell : ${currenciesToSell}">
+                    <a th:href="@{/trading/{currencyToSell}/{currencyToBuy}(currencyToSell=${currencyToSell}, currencyToBuy=${activeCurrencyToBuy})}">
+                        <button th:text="${currencyToSell}" th:class="'currency-btn' + (${currencyToSell} == ${activeCurrencyToSell} ? ' active' : '')"></button>
+                    </a>
+                </th:block>
+            </div>
+
+            <div class="quote-currencies">
+                <th:block th:each="currencyToBuy : ${currenciesToBuy}">
+                    <a th:href="@{/trading/{currencyToSell}/{currencyToBuy}(currencyToSell=${activeCurrencyToSell}, currencyToBuy=${currencyToBuy})}">
+                        <button th:text="${currencyToBuy}" th:class="'currency-btn' + (${currencyToBuy} == ${activeCurrencyToBuy} ? ' active' : '')"></button>
+                    </a>
+                </th:block>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trading options tabs -->
+    <div class="trading-options">
+        <a th:href="@{/trading/{currencyToSell}/{currencyToBuy}(currencyToSell=${activeCurrencyToSell}, currencyToBuy=${activeCurrencyToBuy}, orderType='MARKET')}">
+            <button th:class="'option-btn' + (${orderType} == 'MARKET' ? ' active' : '')">ПО РЫНКУ</button>
+        </a>
+        <a th:href="@{/trading/{currencyToSell}/{currencyToBuy}(currencyToSell=${activeCurrencyToSell}, currencyToBuy=${activeCurrencyToBuy}, orderType='LIMIT')}">
+            <button th:class="'option-btn' + (${orderType} == 'LIMIT' ? ' active' : '')">ФИКС. ЦЕНА</button>
+        </a>
+    </div>
+
+    <!-- Trading interface -->
+    <div class="trading-interface">
+        <div class="trade-section buy-section">
+            <h3 th:text="'Купить ' + ${currencyToBuy}"></h3>
+            <div class="balance-info">
+                <span>У вас на счету</span>
+                <span th:text="${currencyToSellBalance} + ' ' + ${currencyToSell}"></span>
+            </div>
+
+            <div class="trade-form">
+                <div class="form-group">
+                    <label for="you-give-away" th:text="'Вы отдаете (' + ${currencyToSell} + ')'"></label>
+                    <div class="input-group">
+                        <input type="text" id="you-give-away" th:placeholder="${currencyToSell}">
+                        <button class="max-btn">Max</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="buy-rate">Курс</label>
+                    <div class="input-group">
+                        <input type="text" id="buy-rate" th:value="${orderType} == 'MARKET' ? ${sellOrders[0].rate} : ''">
+                        <span class="currency-label" th:text="${currencyToSell}"></span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="buy-commission">Комиссия</label>
+                    <div class="input-group split">
+                        <div class="percent-input">
+                            <input type="text" id="buy-commission-percent" th:value="${orderCommission}">
+                            <span class="currency-label">%</span>
+                        </div>
+                        <div class="amount-input">
+                            <input type="text" id="buy-commission-amount" value="0">
+                            <span class="currency-label" th:text="${currencyToSell}"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="you-get" th:text="'Вы получаете (' + ${currencyToBuy} + ')'"></label>
+                    <div class="input-group">
+                        <input type="text" id="you-get" th:placeholder="${currencyToBuy}">
+                        <button class="max-btn">Max</button>
+                    </div>
+                </div>
+
+                <button class="action-btn exchange-btn">ОБМЕНЯТЬ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order book section -->
+    <div class="order-book">
+        <!-- Sell orders table -->
+        <div class="order-table sell-orders">
+            <h3 th:text="'Продажа ' + ${currencyToBuy}"></h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th th:text="'Курс'"></th>
+                        <th th:text="'Количество (' + ${currencyToBuy} + ')'"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <th:block th:each="sellOrder : ${sellOrders}">
+                        <tr>
+                            <td th:text="${sellOrder.rate}"></td>
+                            <td th:text="${sellOrder.summedAmount}"></td>
+                        </tr>
+                    </th:block>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Buy orders table -->
+        <div class="order-table buy-orders">
+            <h3 th:text="'Покупка ' + ${currencyToBuy}"></h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th th:text="'Курс'"></th>
+                        <th th:text="'Количество (' + ${currencyToBuy} + ')'"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <th:block th:each="buyOrder : ${buyOrders}">
+                        <tr>
+                            <td th:text="${buyOrder.rate}"></td>
+                            <td th:text="${buyOrder.summedAmount}"></td>
+                        </tr>
+                    </th:block>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+<!-- Модальное окно -->
+<div id="confirmationModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Подтверждение обмена</h2>
+        <div class="modal-field">
+            <label>Тип заявки:</label>
+            <span id="modal-order-type"></span>
+        </div>
+        <div class="modal-field">
+            <label>Вы отдаете:</label>
+            <span id="modal-you-give-away"></span>
+        </div>
+        <div class="modal-field">
+            <label>Приблизитальный курс:</label>
+            <span id="modal-rate"></span>
+        </div>
+        <div class="modal-field">
+            <label>Вы получаете:</label>
+            <span id="modal-you-get"></span>
+        </div>
+        <button id="confirmExchange" class="action-btn">ПОДТВЕРДИТЬ</button>
+    </div>
+</div>
+<footer th:replace="~{fragments/footer :: footer}"></footer>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    window.tradingData = {
+        activeCurrencyToSell: /*[[${activeCurrencyToSell}]]*/,
+        activeCurrencyToBuy: /*[[${activeCurrencyToBuy}]]*/,
+        orderType: /*[[${orderType}]]*/,
+        orderCommission: /*[[${orderCommission}]]*/,
+        valuesInverted: /*[[${valuesInverted}]]*/
+    };
+    /*]]>*/
+</script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="/js/trading.js"></script>
+</body>
+</html>

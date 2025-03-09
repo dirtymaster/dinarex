@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Главная</title>
+    <link rel="stylesheet" href="/css/index.css">
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/header.css">
+    <link rel="stylesheet" href="/css/footer.css">
+</head>
+<body>
+<header th:replace="~{fragments/header :: header}"></header>
+<main>
+    <section class="crypto-exchange">
+        <div class="exchange-info">
+            <h1>Dinarex – P2P биржа валют</h1>
+            <p>Наличные и безналичные динары, рубли</p>
+
+            <ul class="features-list">
+                <li>Пополнение и вывод наличных динаров без комиссии в Белграде</li>
+                <li>Вывод рублей на карты российских банков</li>
+                <li>Вывод динаров на карты сербских банков</li>
+                <li>Минимальные комиссии от 0.1% до 0.2% за сделку</li>
+                <li>Биржа работает круглосуточно в полном объеме</li>
+                <li>Любые способы пополнения/вывода баланса через P2P-площадку биржи</li>
+            </ul>
+        </div>
+
+        <div class="exchange-visual">
+            <img src="/images/microchips.png" alt="Криптовалюты и микрочипы" class="microchips-image">
+            <p class="fee-info">0% ВВОД И ВЫВОД ДИНАРОВОГО КОДА</p>
+        </div>
+    </section>
+
+    <section class="exchange-rates">
+        <div class="sell-rates">
+            <h3>Курс продажи RSD за RUB</h3>
+            <div class="rates-list">
+                <span th:text="${rubRsdRate}"></span>
+            </div>
+        </div>
+
+        <div class="buy-rates">
+            <h3>Курс продажи RUB за RSD</h3>
+            <div class="rates-list">
+                <span th:text="${rsdRubRate}"></span>
+            </div>
+        </div>
+    </section>
+
+    <section class="target-audience">
+        <div class="target-audience-title">Для кого предназначена биржа <strong>Dinarex</strong></div>
+        <div class="audience-container">
+            <div class="audience-section">
+                <img src="/images/buysell.png" alt="Трейдер">
+                <h2>Покупатель/продавец валюты</h2>
+                <ul>
+                    <li>Dinarex - биржа с возможностью пополнения или вывода баланса наличными</li>
+                    <li>Офис находится в Белграде</li>
+                    <li>Вывод рублей на карты/счета российских и сербских банков</li>
+                    <li>Низкие комиссии за сделку</li>
+                </ul>
+            </div>
+            <div class="audience-section">
+                <img src="/images/exchange.png" alt="Обменник">
+                <h2>Обменник</h2>
+                <ul>
+                    <li>Низкая комиссия за обмен</li>
+                    <li>Множество обменников уже зарабатывают с биржей Dinarex, присоединяйтесь</li>
+                    <li>Свяжитесь с нами, чтобы узнать о возможных вариантах интеграции</li>
+                </ul>
+            </div>
+        </div>
+        <a href="#" class="chat-button">ЧАТ С МЕНЕДЖЕРОМ</a>
+    </section>
+</main>
+<footer th:replace="~{fragments/footer :: footer}"></footer>
+</body>
+</html>

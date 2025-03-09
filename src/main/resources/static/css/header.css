@@ -1,0 +1,79 @@
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 40px;
+    background-color: #373943;
+}
+
+.logo {
+    font-size: 24px;
+    font-weight: bold;
+    border: 2px solid white;
+    padding: 5px 10px;
+    margin-right: 20px;
+    color: white;
+}
+
+nav {
+    display: flex;
+    align-items: center;
+}
+
+nav a {
+    color: white;
+    text-decoration: none;
+    margin: 0 10px;
+    font-size: 16px;
+}
+
+.auth-buttons {
+    display: flex;
+    align-items: center;
+}
+
+.auth-buttons a {
+    color: white;
+    text-decoration: none;
+    margin-left: 10px;
+    font-size: 16px;
+}
+
+/* Registration and Login buttons */
+.register-button {
+    background-color: transparent;
+    border: 2px solid #38b67c;
+    color: #38b67c;
+    padding: 10px 20px;
+    margin-left: 10px;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.register-button:hover {
+    background-color: #38b67c;
+    color: white;
+}
+
+.login-button {
+    background-color: #38b67c;
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    margin-left: 10px;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.login-button:hover {
+    background-color: #2e9d6a;
+}
+
+.support-icon {
+    color: #38b67c;
+    margin-right: 10px;
+}

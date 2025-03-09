@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Главная</title>
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/header.css">
+    <link rel="stylesheet" href="/css/footer.css">
+    <link rel="stylesheet" href="/css/auth.css">
+</head>
+<body>
+<header th:replace="~{fragments/header :: header}"></header>
+<main class="auth-container">
+    <div class="auth-form">
+        <h2>Регистрация</h2>
+
+        <form th:action="@{/auth/register}" method="post">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="username" placeholder="Введите email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Пароль</label>
+                <div class="password-input">
+                    <input type="password" id="password" name="password" placeholder="Пароль" required>
+                    <span class="password-toggle">👁️</span>
+                </div>
+                <p class="password-requirements">Пароль должен содержать хотя бы одну цифру, одну прописную букву и одну строчную букву и быть длиннее 6 символов.</p>
+            </div>
+
+            <div class="form-group checkbox-group">
+                <input type="checkbox" id="terms" name="terms" required>
+                <label for="terms">
+                    Регистрируясь на бирже Garantex, Вы принимаете
+                    <a href="#" class="terms-link">Правила пользования сайтом</a>, соглашаетесь с условиями
+                    <a href="#" class="terms-link">Пользовательского соглашения</a> и
+                    <a href="#" class="terms-link">Политикой конфиденциальности</a>.
+                </label>
+            </div>
+
+            <div class="form-group checkbox-group">
+                <input type="checkbox" id="not-us-citizen" name="not-us-citizen" required>
+                <label for="not-us-citizen">Я не являюсь гражданином либо резидентом США</label>
+            </div>
+
+<!--            <div class="form-group captcha-group">-->
+<!--                <div class="captcha">-->
+<!--                    <div class="captcha-checkbox">-->
+<!--                        <input type="checkbox" id="captcha" name="captcha">-->
+<!--                        <label for="captcha">Я не робот</label>-->
+<!--                    </div>-->
+<!--                    <div class="captcha-logo">-->
+<!--                        <span>reCAPTCHA</span>-->
+<!--                        <div class="captcha-links">-->
+<!--                            <a href="#">Конфиденциальность</a> - <a href="#">Условия использования</a>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+
+            <button type="submit" class="auth-submit-button">Зарегистрироваться</button>
+
+            <div class="form-divider">
+                <span>или</span>
+            </div>
+
+            <a href="/auth/login" class="other-auth-link">Вход</a>
+        </form>
+    </div>
+</main>
+<footer th:replace="~{fragments/footer :: footer}"></footer>
+</body>
+</html>
