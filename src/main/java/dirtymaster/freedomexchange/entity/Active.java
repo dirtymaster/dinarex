@@ -33,4 +33,8 @@ public class Active {
     private BigDecimal amount;
 
     private BigDecimal blockedAmount;
+
+    public void subtractAmount(BigDecimal amount) {
+        this.amount = this.amount.subtract(amount);
+    }
 }

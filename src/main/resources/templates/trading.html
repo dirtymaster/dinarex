@@ -171,7 +171,13 @@
             <label>Вы получаете:</label>
             <span id="modal-you-get"></span>
         </div>
-        <button id="confirmExchange" class="action-btn">ПОДТВЕРДИТЬ</button>
+        <form id="exchangeForm" th:action="@{/order/{currencyToSell}/{currencyToBuy} (currencyToSell=${activeCurrencyToSell}, currencyToBuy=${activeCurrencyToBuy})}" method="post">
+            <input type="hidden" id="amountToSell" name="amountToSell">
+            <input type="hidden" id="orderType" name="orderType">
+            <input type="hidden" id="rate" name="rate">
+
+            <button id="confirmExchange" type="submit" class="action-btn">ПОДТВЕРДИТЬ</button>
+        </form>
     </div>
 </div>
 <footer th:replace="~{fragments/footer :: footer}"></footer>

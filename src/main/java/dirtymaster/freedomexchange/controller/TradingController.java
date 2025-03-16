@@ -5,19 +5,24 @@ import dirtymaster.freedomexchange.dto.OrderType;
 import dirtymaster.freedomexchange.dto.SummedOrder;
 import dirtymaster.freedomexchange.dto.TradeRequest;
 import dirtymaster.freedomexchange.entity.Currency;
+import dirtymaster.freedomexchange.entity.Order;
 import dirtymaster.freedomexchange.service.ActiveService;
 import dirtymaster.freedomexchange.service.OrderService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 @Controller
 @RequestMapping("/trading")
@@ -59,35 +64,10 @@ public class TradingController {
         BigDecimal currencyToBuyBalance = activeService.getActiveAmountByCurrency(currencyToBuy);
         model.addAttribute("currencyToBuyBalance", currencyToBuyBalance);
 
-        List<SummedOrder> sellOrders = orderService.get50Orders(currencyToSell, currencyToBuy, true);
-        List<SummedOrder> buyOrders = orderService.get50Orders(currencyToBuy, currencyToSell, true);
-        boolean valuesInverted = orderService.invertValues(sellOrders);
-        if (!valuesInverted) {
-            orderService.invertValues(buyOrders);
-        }
-        model.addAttribute("sellOrders", sellOrders);
-        model.addAttribute("buyOrders", buyOrders);
-        model.addAttribute("valuesInverted", valuesInverted);
+        orderService.getOrders(currencyToSell, currencyToBuy)
+                .forEach(model::addAttribute);
 
         return "trading";
-    }
-
-    @GetMapping("/{currencyToSell}/{currencyToBuy}/orders")
-    @ResponseBody
-    public Map<String, List<SummedOrder>> getOrders(@PathVariable Currency currencyToSell,
-                                                    @PathVariable Currency currencyToBuy) {
-        List<SummedOrder> sellOrders = orderService.get50Orders(currencyToSell, currencyToBuy, true);
-        List<SummedOrder> buyOrders = orderService.get50Orders(currencyToBuy, currencyToSell, true);
-        boolean valuesInverted = orderService.invertValues(sellOrders);
-        if (!valuesInverted) {
-            orderService.invertValues(buyOrders);
-        }
-
-        Map<String, List<SummedOrder>> response = new HashMap<>();
-        response.put("sellOrders", sellOrders);
-        response.put("buyOrders", buyOrders);
-
-        return response;
     }
 
     @GetMapping("/{currency}/balance")
@@ -95,12 +75,4 @@ public class TradingController {
         BigDecimal balance = activeService.getActiveAmountByCurrency(currency);
         return ResponseEntity.ok(balance);
     }
-
-//    @PostMapping("/{currencyToSell}/{currencyToBuy}")
-//    public ResponseEntity<String> executeTrade(@PathVariable String currencyToSell, @PathVariable String currencyToBuy,
-//                                               @RequestBody TradeRequest tradeRequest) {
-//        if (tradeRequest.getOrderType() == OrderType.MARKET) {
-//
-//        }
-//    }
 }

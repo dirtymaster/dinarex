@@ -3,7 +3,7 @@ function updateOrders() {
     let currencyToBuy = window.tradingData.activeCurrencyToBuy;
 
     $.ajaxSetup({ cache: false })
-    $.get(`/trading/${currencyToSell}/${currencyToBuy}/orders`, function(data) {
+    $.get(`/order/${currencyToSell}/${currencyToBuy}/table`, function(data) {
         let sellOrdersHtml = '';
         let buyOrdersHtml = '';
 
@@ -123,39 +123,18 @@ $(document).ready(function() {
     $('.close').click(closeModal);
 
     // Обработчик события для кнопки "ПОДТВЕРДИТЬ"
-    // Обработчик события для кнопки "ПОДТВЕРДИТЬ"
     $('#confirmExchange').on('click', function() {
-        // Собираем данные для отправки
-        const amountToSell = $('#you-give-away').val();
-        const orderType = window.tradingData.orderType;
+        $('#amountToSell').val(parseFloat($('#you-give-away').val()));
+        $('#orderType').val(window.tradingData.orderType);
 
-        // Формируем тело запроса
-        const requestBody = {
-            amountToSell: amountToSell,
-            orderType: orderType
-        };
-
-        if (orderType !== 'LIMIT') {
-            requestBody.rate = $('#buy-rate').val();
+        if (window.tradingData.orderType !== 'LIMIT') {
+            $('#rate').val(parseFloat($('#buy-rate').val()));
         }
 
-        // Отправляем POST-запрос с использованием jQuery
-        $.ajax({
-            url: `/trading/${window.tradingData.activeCurrencyToSell}/${window.tradingData.activeCurrencyToBuy}`,
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(requestBody),
-            success: function(response) {
-                // Если запрос успешен, закрываем модальное окно и показываем сообщение
-                closeModal();
-                alert('Обмен успешно выполнен!');
-            },
-            error: function(xhr, status, error) {
-                // Если запрос неудачен, показываем ошибку
-                const errorMessage = xhr.responseJSON?.message || 'Неизвестная ошибка';
-                alert(`Ошибка: ${errorMessage}`);
-            }
-        });
+        //$('#buy-rate'
+        console.log("$(\'#buy-rate\'" + $('#buy-rate'))
+        console.log("$('#you-give-away')" + $('#you-give-away'))
+        $('#exchangeForm').submit();
     });
 
     // Закрытие модального окна при клике вне его области

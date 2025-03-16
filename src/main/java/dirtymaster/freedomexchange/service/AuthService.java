@@ -1,6 +1,8 @@
 package dirtymaster.freedomexchange.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -34,5 +36,18 @@ public class AuthService {
                 .roles("USER")  // Присваиваем роль USER
                 .build());
         activeService.createAllZeroActives(username);
+    }
+
+    public String getUsernameOrNull() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            String name = authentication.getName();
+            return "anonymousUser".equals(name) ? null : name;
+        }
+        return null;
+    }
+
+    public void deleteUser(String username) {
+        userDetailsService.deleteUser(username);
     }
 }
