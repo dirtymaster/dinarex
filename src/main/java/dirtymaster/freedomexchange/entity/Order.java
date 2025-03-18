@@ -5,8 +5,12 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinColumns;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -60,6 +64,20 @@ public class Order {
      */
     @Column(precision = 19, scale = 6)
     private BigDecimal completedAmountToSell;
+
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumns({
+//            @JoinColumn(name = "creator", referencedColumnName = "username", insertable = false, updatable = false),
+//            @JoinColumn(name = "currency_to_sell", referencedColumnName = "currency", insertable = false, updatable = false)
+//    })
+//    private Active activeToSell;
+//
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumns({
+//            @JoinColumn(name = "creator", referencedColumnName = "username", insertable = false, updatable = false),
+//            @JoinColumn(name = "currency_to_buy", referencedColumnName = "currency", insertable = false, updatable = false)
+//    })
+//    private Active activeToBuy;
 
     /**
      * Признак завершенности ордера
@@ -149,16 +167,18 @@ public class Order {
         if (currency == currencyToSell) {
             this.completedAmountToSell = totalAmountToSell.subtract(notCompletedAmount);
         } else if (currency == currencyToBuy) {
-            BigDecimal notCompletedAmountToSell = notCompletedAmount.divide(rate, 6, RoundingMode.CEILING);
+            BigDecimal notCompletedAmountToSell = notCompletedAmount.multiply(rate);
             this.completedAmountToSell = totalAmountToSell.subtract(notCompletedAmountToSell);
         } else {
             throw new IllegalArgumentException("Unknown currency: " + currency);
         }
     }
 
-    public void complete() {
-        completed = true;
-        completedAmountToSell = totalAmountToSell;
+    //TODO заменить на OrderService#successfulComplete
+    public void successfulComplete() {
+        this.completed = true;
+        this.completedAmountToSell = this.totalAmountToSell;
+        this.completedAt = LocalDateTime.now();
     }
 
     private BigDecimal getNotCompletedAmountToSell() {
@@ -170,7 +190,7 @@ public class Order {
     }
 
     private BigDecimal getNotCompletedAmountToBuy() {
-        return getNotCompletedAmountToSell().multiply(rate);
+        return getNotCompletedAmountToSell().divide(rate, 6, RoundingMode.CEILING);
     }
 
     private void setNotCompletedAmountToBuy(BigDecimal notCompletedAmountToBuy) {

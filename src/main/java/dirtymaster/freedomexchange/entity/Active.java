@@ -37,4 +37,8 @@ public class Active {
     public void subtractAmount(BigDecimal amount) {
         this.amount = this.amount.subtract(amount);
     }
+
+    public void addAmount(BigDecimal amount) {
+        this.amount = this.amount.add(amount);
+    }
 }

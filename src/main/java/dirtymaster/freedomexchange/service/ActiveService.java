@@ -3,7 +3,6 @@ package dirtymaster.freedomexchange.service;
 import dirtymaster.freedomexchange.entity.Active;
 import dirtymaster.freedomexchange.entity.Currency;
 import dirtymaster.freedomexchange.repository.ActiveRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
@@ -68,7 +67,7 @@ public class ActiveService {
         return activeRepository.findByUsernameAndCurrency(username, currency);
     }
 
-    public void saveActive(Active active) {
+    public void save(Active active) {
         activeRepository.save(active);
     }
 }

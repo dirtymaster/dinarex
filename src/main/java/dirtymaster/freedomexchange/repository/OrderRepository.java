@@ -15,7 +15,7 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     Order findTopRateByCurrencyToSellAndCurrencyToBuy(Currency currencyToSell, Currency currencyToBuy);
 
     @Query(value = """
-            SELECT o.rate, SUM(o.total_amount - o.completed_amount) 
+            SELECT o.rate, SUM(o.total_amount_to_sell - o.completed_amount_to_sell) 
             FROM orders o
             WHERE o.completed = false
               AND o.order_type = 'LIMIT'
@@ -25,12 +25,12 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
             ORDER BY o.rate ASC
             LIMIT :limit""",
             nativeQuery = true)
-    List<SummedOrder> findTop50SummedByBaseCurrencyAndQuoteCurrencyOrderByRateAsc(
+    List<SummedOrder> findTop50SummedByCurrencyToSellAndCurrencyToBuyOrderByRateAsc(
             @Param("currencyToSell") String currencyToSell,
             @Param("currencyToBuy") String currencyToBuy, @Param("limit") int limit);
 
     @Query(value = """
-            SELECT o.rate, SUM(o.total_amount - o.completed_amount) 
+            SELECT o.rate, SUM(o.total_amount_to_sell - o.completed_amount_to_sell) 
             FROM orders o
             WHERE o.completed = false
               AND o.order_type = 'LIMIT'
@@ -40,21 +40,11 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
             ORDER BY o.rate DESC
             LIMIT :limit""",
             nativeQuery = true)
-    List<SummedOrder> findTop50SummedByBaseCurrencyAndQuoteCurrencyOrderByRateDesc(
+    List<SummedOrder> findTop50SummedByCurrencyToSellAndCurrencyToBuyOrderByRateDesc(
             @Param("currencyToSell") String currencyToSell,
             @Param("currencyToBuy") String currencyToBuy, @Param("limit") int limit);
 
-    @Query("""
-            SELECT o
-            FROM Order o
-            WHERE o.currencyToSell = :currencyToSell AND o.currencyToBuy = :currencyToBuy
-            GROUP BY o.rate
-            ORDER BY o.rate DESC""")
-    List<Order> findByBaseCurrencyAndQuoteCurrencyOrderByRateDesc(
-            @Param("currencyToSell") Currency currencyToSell,
-            @Param("currencyToBuy") Currency currencyToBuy);
-
-    List<Order> findByCompletedAndCurrencyToSellAndCurrencyToBuyAndRateGreaterThanOrderByRateDesc(
+    List<Order> findByCompletedAndCurrencyToSellAndCurrencyToBuyAndRateGreaterThanEqualOrderByRateDesc(
             boolean completed, Currency currencyToSell, Currency currencyToBuy, BigDecimal rate);
 
     List<Order> findByCompletedAndCurrencyToSellAndCurrencyToBuyOrderByRateDesc(

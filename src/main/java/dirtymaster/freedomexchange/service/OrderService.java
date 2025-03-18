@@ -59,10 +59,10 @@ public class OrderService {
     private List<SummedOrder> get50Orders(Currency currencyToSell, Currency currencyToBuy, boolean asc) {
         List<SummedOrder> summedOrders;
         if (asc) {
-            summedOrders = orderRepository.findTop50SummedByBaseCurrencyAndQuoteCurrencyOrderByRateAsc(
+            summedOrders = orderRepository.findTop50SummedByCurrencyToSellAndCurrencyToBuyOrderByRateAsc(
                     currencyToSell.name(), currencyToBuy.name(), 50);
         } else {
-            summedOrders = orderRepository.findTop50SummedByBaseCurrencyAndQuoteCurrencyOrderByRateDesc(
+            summedOrders = orderRepository.findTop50SummedByCurrencyToSellAndCurrencyToBuyOrderByRateDesc(
                     currencyToSell.name(), currencyToBuy.name(), 50);
         }
         return summedOrders;
@@ -82,33 +82,30 @@ public class OrderService {
     @Transactional
     public Order processOrder(Currency currencyCurrentUserSelling, Currency currencyCurrentUserBuying, OrderType orderType,
                             BigDecimal amountCurrentUserSelling, BigDecimal rate) {
-        Active activeCurrentUserSelling = activeService.findByCurrency(currencyCurrentUserSelling);
-        if (activeCurrentUserSelling.getAmount().compareTo(amountCurrentUserSelling) < 0) {
-            throw new IllegalArgumentException("Not enough funds");
-        }
-        Active activeCurrentUserBuying = activeService.findByCurrency(currencyCurrentUserBuying);
-        //TODO плюсовать пользователю баланс купленного актива
-        BigDecimal amountToBuy = BigDecimal.ZERO;
-
         boolean isMarket = orderType == OrderType.MARKET;
         if (!isMarket && rate == null) {
             throw new IllegalArgumentException("Rate is required for limit order");
         }
-        Order newOrder = createOrder(currencyCurrentUserSelling, currencyCurrentUserBuying, orderType, amountCurrentUserSelling, rate);
-        List<Order> ordersToSave = new ArrayList<>();
-        ordersToSave.add(newOrder);
 
+        Active activeCurrentUserSelling = activeService.findByCurrency(currencyCurrentUserSelling);
+        if (activeCurrentUserSelling.getAmount().compareTo(amountCurrentUserSelling) < 0) {
+            throw new IllegalArgumentException("Not enough funds");
+        }
+
+        Order newOrder = createOrder(currencyCurrentUserSelling, currencyCurrentUserBuying, orderType, amountCurrentUserSelling, rate);
+
+        BigDecimal invertedRate = invertValue(rate);
         List<Order> orders = isMarket ?
                 orderRepository.findByCompletedAndCurrencyToSellAndCurrencyToBuyOrderByRateDesc(
                         false, currencyCurrentUserBuying, currencyCurrentUserSelling)
-                : orderRepository.findByCompletedAndCurrencyToSellAndCurrencyToBuyAndRateGreaterThanOrderByRateDesc(
-                        false, currencyCurrentUserBuying, currencyCurrentUserSelling, rate);
+                : orderRepository.findByCompletedAndCurrencyToSellAndCurrencyToBuyAndRateGreaterThanEqualOrderByRateDesc(
+                        false, currencyCurrentUserBuying, currencyCurrentUserSelling, invertedRate);
         if (!orders.isEmpty()) {
             // Сумма в существующих ордерах в валюте, которую продает текущий пользователь.
             BigDecimal summedAmountInCurrencyCurrentUserSelling = BigDecimal.ZERO;
             List<Order> selectedOrders = new ArrayList<>();
             for (Order order : orders) {
-                if (summedAmountInCurrencyCurrentUserSelling.compareTo(amountCurrentUserSelling) > 0) {
+                if (summedAmountInCurrencyCurrentUserSelling.compareTo(amountCurrentUserSelling) >= 0) {
                     break;
                 }
                 if (isMarket && !selectedOrders.isEmpty()) {
@@ -127,17 +124,30 @@ public class OrderService {
 
             // Если сумма в существующих ордерах меньше, чем в новом
             if (summedAmountInCurrencyCurrentUserSelling.compareTo(amountCurrentUserSelling) < 0) {
-                selectedOrders.forEach(Order::complete);
+                selectedOrders.forEach(this::successfulComplete);
+
+                BigDecimal totalWeightedRate = BigDecimal.ZERO;
+                BigDecimal totalAmount = BigDecimal.ZERO;
+                for (Order order : selectedOrders) {
+                    BigDecimal notCompletedAmount = order.getNotCompletedAmountInCurrency(order.getCurrencyToSell());
+                    totalWeightedRate = totalWeightedRate.add(order.getRate().multiply(notCompletedAmount));
+                    totalAmount = totalAmount.add(notCompletedAmount);
+                }
+                BigDecimal averageRate = totalWeightedRate.divide(totalAmount, 6, RoundingMode.HALF_UP);
+
                 if (isMarket) {
                     newOrder.setCompleted(true);
                 }
                 newOrder.setCompletedAmountToSell(summedAmountInCurrencyCurrentUserSelling);
+                Active activeCurrentUserBuying = activeService.findByCurrency(currencyCurrentUserBuying);
+                activeCurrentUserBuying.addAmount(summedAmountInCurrencyCurrentUserSelling.multiply(averageRate));
+                activeService.save(activeCurrentUserBuying);
 
                 activeCurrentUserSelling.subtractAmount(summedAmountInCurrencyCurrentUserSelling);
             // Если сумма в существующих ордерах точно равна сумме в новом
             } else if (summedAmountInCurrencyCurrentUserSelling.compareTo(amountCurrentUserSelling) == 0) {
-                selectedOrders.forEach(Order::complete);
-                newOrder.complete();
+                selectedOrders.forEach(this::successfulComplete);
+                successfulComplete(newOrder);
 
                 activeCurrentUserSelling.subtractAmount(amountCurrentUserSelling);
             // Если сумма в существующих ордерах превышает сумму в новом
@@ -145,18 +155,25 @@ public class OrderService {
                 Order lastOrder = selectedOrders.getLast();
                 BigDecimal amountMatchedForLastOrder = summedAmountInCurrencyCurrentUserSelling.subtract(amountCurrentUserSelling);
                 lastOrder.setNotCompletedAmount(amountMatchedForLastOrder, currencyCurrentUserSelling);
-                IntStream.range(0, selectedOrders.size() - 1)
-                        .forEach(i -> selectedOrders.get(i).complete());
+                Active active = activeService.findByUsernameAndCurrency(lastOrder.getCreator(), lastOrder.getCurrencyToBuy());
+                active.addAmount(amountMatchedForLastOrder);
+                activeService.save(active);
 
-                newOrder.complete();
+                IntStream.range(0, selectedOrders.size() - 1)
+                        .forEach(i -> successfulComplete(selectedOrders.get(i)));
+
+                successfulComplete(newOrder);
 
                 activeCurrentUserSelling.subtractAmount(amountCurrentUserSelling);
             }
-            ordersToSave.addAll(selectedOrders);
+            orderRepository.saveAll(selectedOrders);
         } else if (isMarket) {
             throw new RuntimeException("Order book is empty");
+        } else {
+            activeCurrentUserSelling.subtractAmount(amountCurrentUserSelling);
         }
-        orderRepository.saveAll(ordersToSave);
+        orderRepository.save(newOrder);
+        activeService.save(activeCurrentUserSelling);
         return newOrder;
     }
 
@@ -182,21 +199,27 @@ public class OrderService {
         return order;
     }
 
-    private void completeOrder(Order order) {
-        order.setCompletedAmountToSell(order.getTotalAmountToSell());
+    private void successfulComplete(Order order) {
+        BigDecimal notCompletedAmount = order.getNotCompletedAmountInCurrency(order.getCurrencyToBuy());
         order.setCompleted(true);
+        order.setCompletedAmountToSell(order.getTotalAmountToSell());
         order.setCompletedAt(LocalDateTime.now());
 
         Active active = activeService.findByUsernameAndCurrency(order.getCreator(), order.getCurrencyToBuy());
-
+        active.addAmount(notCompletedAmount);
+        activeService.save(active);
     }
 
     private boolean invertValues(List<SummedOrder> summedOrders) {
         if (summedOrders.getFirst().getRate().compareTo(BigDecimal.ONE) < 0) {
             summedOrders.forEach(summedOrder ->
-                    summedOrder.setRate(BigDecimal.ONE.divide(summedOrder.getRate(), 6, RoundingMode.CEILING)));
+                    summedOrder.setRate(invertValue(summedOrder.getRate())));
             return true;
         }
         return false;
+    }
+
+    private BigDecimal invertValue(BigDecimal value) {
+        return BigDecimal.ONE.divide(value, 6, RoundingMode.CEILING);
     }
 }
