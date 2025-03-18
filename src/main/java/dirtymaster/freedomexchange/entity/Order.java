@@ -45,12 +45,14 @@ public class Order {
      * Валюта, которую пользователь хочет продать
      */
     @Enumerated(EnumType.STRING)
+    @Column(name = "currency_to_sell")
     private Currency currencyToSell;
 
     /**
      * Валюта, которую пользователь хочет купить
      */
     @Enumerated(EnumType.STRING)
+    @Column(name = "currency_to_buy")
     private Currency currencyToBuy;
 
     /**
@@ -65,19 +67,19 @@ public class Order {
     @Column(precision = 19, scale = 6)
     private BigDecimal completedAmountToSell;
 
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumns({
-//            @JoinColumn(name = "creator", referencedColumnName = "username", insertable = false, updatable = false),
-//            @JoinColumn(name = "currency_to_sell", referencedColumnName = "currency", insertable = false, updatable = false)
-//    })
-//    private Active activeToSell;
-//
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumns({
-//            @JoinColumn(name = "creator", referencedColumnName = "username", insertable = false, updatable = false),
-//            @JoinColumn(name = "currency_to_buy", referencedColumnName = "currency", insertable = false, updatable = false)
-//    })
-//    private Active activeToBuy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumns({
+            @JoinColumn(name = "creator", referencedColumnName = "username", insertable = false, updatable = false),
+            @JoinColumn(name = "currency_to_sell", referencedColumnName = "currency", insertable = false, updatable = false)
+    })
+    private Active activeToSell;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumns({
+            @JoinColumn(name = "creator", referencedColumnName = "username", insertable = false, updatable = false),
+            @JoinColumn(name = "currency_to_buy", referencedColumnName = "currency", insertable = false, updatable = false)
+    })
+    private Active activeToBuy;
 
     /**
      * Признак завершенности ордера
@@ -108,26 +110,6 @@ public class Order {
      */
     private LocalDateTime completedAt;
 
-    public BigDecimal getTotalAmountInCurrency(Currency currency) {
-        if (currency == currencyToSell) {
-            return totalAmountToSell;
-        } else if (currency == currencyToBuy) {
-            return getTotalAmountToBuy();
-        } else {
-            throw new IllegalArgumentException("Unknown currency: " + currency);
-        }
-    }
-
-    public BigDecimal getCompletedAmountInCurrency(Currency currency) {
-        if (currency == currencyToSell) {
-            return completedAmountToSell;
-        } else if (currency == currencyToBuy) {
-            return getCompletedAmountToBuy();
-        } else {
-            throw new IllegalArgumentException("Unknown currency: " + currency);
-        }
-    }
-
     public BigDecimal getNotCompletedAmountInCurrency(Currency currency) {
         if (currency == currencyToSell) {
             return getNotCompletedAmountToSell();
@@ -138,32 +120,7 @@ public class Order {
         }
     }
 
-    public void setCompletedAmount(BigDecimal completedAmount, Currency currency) {
-        if (currency == currencyToSell) {
-            completedAmountToSell = completedAmount;
-        } else if (currency == currencyToBuy) {
-            completedAmountToSell = completedAmount.multiply(rate);
-        } else {
-            throw new IllegalArgumentException("Unknown currency: " + currency);
-        }
-    }
-
-    public void addCompletedAmount(BigDecimal completedAmountToAdd, Currency currency) {
-        BigDecimal completedAmountToSell;
-        if (currency == currencyToSell) {
-            completedAmountToSell = this.completedAmountToSell.add(completedAmountToAdd);
-        } else if (currency == currencyToBuy) {
-            completedAmountToSell = this.completedAmountToSell.add(completedAmountToAdd.multiply(rate));
-        } else {
-            throw new IllegalArgumentException("Unknown currency: " + currency);
-        }
-        if (completedAmountToSell.compareTo(this.totalAmountToSell) > 0) {
-            throw new IllegalArgumentException("Completed amount cannot be greater than total amount");
-        }
-        this.completedAmountToSell = completedAmountToSell;
-    }
-
-    public void setNotCompletedAmount(BigDecimal notCompletedAmount, Currency currency) {
+    public void setNotCompletedAmountInCurrency(BigDecimal notCompletedAmount, Currency currency) {
         if (currency == currencyToSell) {
             this.completedAmountToSell = totalAmountToSell.subtract(notCompletedAmount);
         } else if (currency == currencyToBuy) {
@@ -174,35 +131,11 @@ public class Order {
         }
     }
 
-    //TODO заменить на OrderService#successfulComplete
-    public void successfulComplete() {
-        this.completed = true;
-        this.completedAmountToSell = this.totalAmountToSell;
-        this.completedAt = LocalDateTime.now();
-    }
-
     private BigDecimal getNotCompletedAmountToSell() {
         return totalAmountToSell.subtract(completedAmountToSell);
     }
 
-    private void setNotCompletedAmountToSell(BigDecimal notCompletedAmountToSell) {
-        this.completedAmountToSell = totalAmountToSell.subtract(notCompletedAmountToSell);
-    }
-
     private BigDecimal getNotCompletedAmountToBuy() {
         return getNotCompletedAmountToSell().divide(rate, 6, RoundingMode.CEILING);
-    }
-
-    private void setNotCompletedAmountToBuy(BigDecimal notCompletedAmountToBuy) {
-        BigDecimal notCompletedAmountToSell = notCompletedAmountToBuy.multiply(rate);
-        setNotCompletedAmountToSell(notCompletedAmountToSell);
-    }
-
-    private BigDecimal getTotalAmountToBuy() {
-        return totalAmountToSell.divide(rate, 6, RoundingMode.CEILING);
-    }
-
-    private BigDecimal getCompletedAmountToBuy() {
-        return completedAmountToSell.divide(rate, 6, RoundingMode.CEILING);
     }
 }

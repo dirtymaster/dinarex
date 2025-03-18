@@ -87,12 +87,10 @@ public class OrderService {
             throw new IllegalArgumentException("Rate is required for limit order");
         }
 
-        Active activeCurrentUserSelling = activeService.findByCurrency(currencyCurrentUserSelling);
-        if (activeCurrentUserSelling.getAmount().compareTo(amountCurrentUserSelling) < 0) {
+        Order newOrder = createOrder(currencyCurrentUserSelling, currencyCurrentUserBuying, orderType, amountCurrentUserSelling, rate);
+        if (newOrder.getActiveToSell().getAmount().compareTo(amountCurrentUserSelling) < 0) {
             throw new IllegalArgumentException("Not enough funds");
         }
-
-        Order newOrder = createOrder(currencyCurrentUserSelling, currencyCurrentUserBuying, orderType, amountCurrentUserSelling, rate);
 
         BigDecimal invertedRate = invertValue(rate);
         List<Order> orders = isMarket ?
@@ -139,41 +137,36 @@ public class OrderService {
                     newOrder.setCompleted(true);
                 }
                 newOrder.setCompletedAmountToSell(summedAmountInCurrencyCurrentUserSelling);
-                Active activeCurrentUserBuying = activeService.findByCurrency(currencyCurrentUserBuying);
-                activeCurrentUserBuying.addAmount(summedAmountInCurrencyCurrentUserSelling.multiply(averageRate));
-                activeService.save(activeCurrentUserBuying);
+                newOrder.getActiveToBuy().addAmount(summedAmountInCurrencyCurrentUserSelling.multiply(averageRate));
 
-                activeCurrentUserSelling.subtractAmount(summedAmountInCurrencyCurrentUserSelling);
+                newOrder.getActiveToSell().subtractAmount(summedAmountInCurrencyCurrentUserSelling);
             // Если сумма в существующих ордерах точно равна сумме в новом
             } else if (summedAmountInCurrencyCurrentUserSelling.compareTo(amountCurrentUserSelling) == 0) {
                 selectedOrders.forEach(this::successfulComplete);
                 successfulComplete(newOrder);
 
-                activeCurrentUserSelling.subtractAmount(amountCurrentUserSelling);
+                newOrder.getActiveToSell().subtractAmount(amountCurrentUserSelling);
             // Если сумма в существующих ордерах превышает сумму в новом
             } else {
                 Order lastOrder = selectedOrders.getLast();
                 BigDecimal amountMatchedForLastOrder = summedAmountInCurrencyCurrentUserSelling.subtract(amountCurrentUserSelling);
-                lastOrder.setNotCompletedAmount(amountMatchedForLastOrder, currencyCurrentUserSelling);
-                Active active = activeService.findByUsernameAndCurrency(lastOrder.getCreator(), lastOrder.getCurrencyToBuy());
-                active.addAmount(amountMatchedForLastOrder);
-                activeService.save(active);
+                lastOrder.setNotCompletedAmountInCurrency(amountMatchedForLastOrder, currencyCurrentUserSelling);
+                lastOrder.getActiveToBuy().addAmount(amountMatchedForLastOrder);
 
                 IntStream.range(0, selectedOrders.size() - 1)
                         .forEach(i -> successfulComplete(selectedOrders.get(i)));
 
                 successfulComplete(newOrder);
 
-                activeCurrentUserSelling.subtractAmount(amountCurrentUserSelling);
+                newOrder.getActiveToSell().subtractAmount(amountCurrentUserSelling);
             }
             orderRepository.saveAll(selectedOrders);
         } else if (isMarket) {
             throw new RuntimeException("Order book is empty");
         } else {
-            activeCurrentUserSelling.subtractAmount(amountCurrentUserSelling);
+            newOrder.getActiveToSell().subtractAmount(amountCurrentUserSelling);
         }
         orderRepository.save(newOrder);
-        activeService.save(activeCurrentUserSelling);
         return newOrder;
     }
 
@@ -196,6 +189,10 @@ public class OrderService {
             order.setRate(rate);
         }
         order.setCreatedAt(LocalDateTime.now());
+        Active activeCurrentUserSelling = activeService.findByCurrency(currencyToSell);
+        order.setActiveToSell(activeCurrentUserSelling);
+        Active activeCurrentUserBuying = activeService.findByCurrency(currencyToBuy);
+        order.setActiveToBuy(activeCurrentUserBuying);
         return order;
     }
 
@@ -205,9 +202,7 @@ public class OrderService {
         order.setCompletedAmountToSell(order.getTotalAmountToSell());
         order.setCompletedAt(LocalDateTime.now());
 
-        Active active = activeService.findByUsernameAndCurrency(order.getCreator(), order.getCurrencyToBuy());
-        active.addAmount(notCompletedAmount);
-        activeService.save(active);
+        order.getActiveToBuy().addAmount(notCompletedAmount);
     }
 
     private boolean invertValues(List<SummedOrder> summedOrders) {
