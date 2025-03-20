@@ -122,8 +122,6 @@ public class OrderService {
 
             // Если сумма в существующих ордерах меньше, чем в новом
             if (summedAmountInCurrencyCurrentUserSelling.compareTo(amountCurrentUserSelling) < 0) {
-                selectedOrders.forEach(this::successfulComplete);
-
                 BigDecimal totalWeightedRate = BigDecimal.ZERO;
                 BigDecimal totalAmount = BigDecimal.ZERO;
                 for (Order order : selectedOrders) {
@@ -132,14 +130,17 @@ public class OrderService {
                     totalAmount = totalAmount.add(notCompletedAmount);
                 }
                 BigDecimal averageRate = totalWeightedRate.divide(totalAmount, 6, RoundingMode.HALF_UP);
+                selectedOrders.forEach(this::successfulComplete);
 
-                if (isMarket) {
-                    newOrder.setCompleted(true);
-                }
                 newOrder.setCompletedAmountToSell(summedAmountInCurrencyCurrentUserSelling);
                 newOrder.getActiveToBuy().addAmount(summedAmountInCurrencyCurrentUserSelling.multiply(averageRate));
 
-                newOrder.getActiveToSell().subtractAmount(summedAmountInCurrencyCurrentUserSelling);
+                if (isMarket) {
+                    newOrder.getActiveToSell().subtractAmount(summedAmountInCurrencyCurrentUserSelling);
+                    newOrder.setCompleted(true);
+                } else {
+                    newOrder.getActiveToSell().subtractAmount(amountCurrentUserSelling);
+                }
             // Если сумма в существующих ордерах точно равна сумме в новом
             } else if (summedAmountInCurrencyCurrentUserSelling.compareTo(amountCurrentUserSelling) == 0) {
                 selectedOrders.forEach(this::successfulComplete);
@@ -166,8 +167,7 @@ public class OrderService {
         } else {
             newOrder.getActiveToSell().subtractAmount(amountCurrentUserSelling);
         }
-        orderRepository.save(newOrder);
-        return newOrder;
+        return orderRepository.save(newOrder);
     }
 
     public Order createOrder(Currency currencyToSell, Currency currencyToBuy, OrderType orderType,
