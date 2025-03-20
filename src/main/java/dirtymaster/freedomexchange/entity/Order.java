@@ -136,6 +136,6 @@ public class Order {
     }
 
     private BigDecimal getNotCompletedAmountToBuy() {
-        return getNotCompletedAmountToSell().divide(rate, 6, RoundingMode.CEILING);
+        return getNotCompletedAmountToSell().divide(rate, 20, RoundingMode.HALF_UP);
     }
 }

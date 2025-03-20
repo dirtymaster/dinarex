@@ -1,6 +1,8 @@
 package dirtymaster.freedomexchange.service;
 
+import dirtymaster.freedomexchange.config.OrdersConfig;
 import dirtymaster.freedomexchange.dto.OrderType;
+import dirtymaster.freedomexchange.dto.SortingType;
 import dirtymaster.freedomexchange.dto.SummedOrder;
 import dirtymaster.freedomexchange.entity.Active;
 import dirtymaster.freedomexchange.entity.Currency;
@@ -26,19 +28,20 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final AuthService authService;
     private final ActiveService activeService;
+    private final OrdersConfig ordersConfig;
 
     public Map<String, Object> getOrders(Currency currencyToSell, Currency currencyToBuy) {
-        List<SummedOrder> sellOrders = get50Orders(currencyToSell, currencyToBuy, true);
-        List<SummedOrder> buyOrders = get50Orders(currencyToBuy, currencyToSell, true);
-        boolean valuesInverted = invertValues(sellOrders);
-        if (!valuesInverted) {
-            invertValues(buyOrders);
+        List<SummedOrder> sellOrders = get50Orders(currencyToSell, currencyToBuy, SortingType.ASC);
+        List<SummedOrder> buyOrders = get50Orders(currencyToBuy, currencyToSell, SortingType.ASC);
+        boolean ratesNormalized = normalizeRates(sellOrders);
+        if (!ratesNormalized) {
+            normalizeRates(buyOrders);
         }
 
         Map<String, Object> responseMap = new HashMap<>();
         responseMap.put("sellOrders", sellOrders);
         responseMap.put("buyOrders", buyOrders);
-        responseMap.put("valuesInverted", valuesInverted);
+        responseMap.put("ratesNormalized", ratesNormalized);
 
         return responseMap;
     }
@@ -56,9 +59,9 @@ public class OrderService {
         return orderRepository.findTopRateByCurrencyToSellAndCurrencyToBuy(first, second).getRate();
     }
 
-    private List<SummedOrder> get50Orders(Currency currencyToSell, Currency currencyToBuy, boolean asc) {
+    private List<SummedOrder> get50Orders(Currency currencyToSell, Currency currencyToBuy, SortingType sortingType) {
         List<SummedOrder> summedOrders;
-        if (asc) {
+        if (sortingType == SortingType.ASC) {
             summedOrders = orderRepository.findTop50SummedByCurrencyToSellAndCurrencyToBuyOrderByRateAsc(
                     currencyToSell.name(), currencyToBuy.name(), 50);
         } else {
@@ -68,17 +71,6 @@ public class OrderService {
         return summedOrders;
     }
 
-    /**
-     * При создании ордера, у пользователя отнимаются активы на полную сумму, которую он продает.
-     * И
-     *
-     * @param currencyCurrentUserSelling
-     * @param currencyCurrentUserBuying
-     * @param orderType
-     * @param amountCurrentUserSelling
-     * @param rate
-     * @return
-     */
     @Transactional
     public Order processOrder(Currency currencyCurrentUserSelling, Currency currencyCurrentUserBuying, OrderType orderType,
                             BigDecimal amountCurrentUserSelling, BigDecimal rate) {
@@ -107,11 +99,9 @@ public class OrderService {
                     break;
                 }
                 if (isMarket && !selectedOrders.isEmpty()) {
-                    //TODO делать первое на второе или второе на первое?
-                    BigDecimal ordersRateRatio = selectedOrders.getFirst().getRate().divide(order.getRate(), 6, RoundingMode.CEILING);
-                    //TODO вынести в properties
-                    if (ordersRateRatio.compareTo(BigDecimal.valueOf(0.8)) < 0) {
-                        throw new LowLiquidityException("Low liquidity");
+                    BigDecimal ordersRateRatio = selectedOrders.getFirst().getRate().divide(order.getRate(), 20, RoundingMode.HALF_UP);
+                    if (ordersRateRatio.compareTo(ordersConfig.getLowLiquidityRatio()) < 0) {
+                        throw new LowLiquidityException("ordersRateRatio: %s, lowLiquidityRatio: %s".formatted(ordersRateRatio, ordersConfig.getLowLiquidityRatio()));
                     }
                 }
 
@@ -129,7 +119,7 @@ public class OrderService {
                     totalWeightedRate = totalWeightedRate.add(order.getRate().multiply(notCompletedAmount));
                     totalAmount = totalAmount.add(notCompletedAmount);
                 }
-                BigDecimal averageRate = totalWeightedRate.divide(totalAmount, 6, RoundingMode.HALF_UP);
+                BigDecimal averageRate = totalWeightedRate.divide(totalAmount, 20, RoundingMode.HALF_UP);
                 selectedOrders.forEach(this::successfulComplete);
 
                 newOrder.setCompletedAmountToSell(summedAmountInCurrencyCurrentUserSelling);
@@ -205,7 +195,7 @@ public class OrderService {
         order.getActiveToBuy().addAmount(notCompletedAmount);
     }
 
-    private boolean invertValues(List<SummedOrder> summedOrders) {
+    private boolean normalizeRates(List<SummedOrder> summedOrders) {
         if (summedOrders.getFirst().getRate().compareTo(BigDecimal.ONE) < 0) {
             summedOrders.forEach(summedOrder ->
                     summedOrder.setRate(invertValue(summedOrder.getRate())));
@@ -215,6 +205,6 @@ public class OrderService {
     }
 
     private BigDecimal invertValue(BigDecimal value) {
-        return BigDecimal.ONE.divide(value, 6, RoundingMode.CEILING);
+        return BigDecimal.ONE.divide(value, 20, RoundingMode.HALF_UP);
     }
 }

@@ -55,7 +55,7 @@ function updateCalculations(sourceElementId = 'you-give-away') {
         if (buyRateValue > 0) {
             // youGiveAway - 100%
             // youGet - 99.9%
-            if (window.tradingData.valuesInverted) {
+            if (window.tradingData.ratesNormalized) {
                 youGetValue = (youGiveAwayValue - youGiveAwayValue * commissionPercentValue / 100) * buyRateValue;
             } else {
                 youGetValue = (youGiveAwayValue - youGiveAwayValue * commissionPercentValue / 100) / buyRateValue;
@@ -66,7 +66,7 @@ function updateCalculations(sourceElementId = 'you-give-away') {
         // Если изменено "Вы получаете", то пересчитываем "Вы отдаете"
         // youGet - 99.9%
         // youGiveAway - 100%
-        if (window.tradingData.valuesInverted) {
+        if (window.tradingData.ratesNormalized) {
             youGiveAwayValue = youGetValue / (100 - commissionPercentValue) * 100 / buyRateValue;
         } else {
             youGiveAwayValue = youGetValue / (100 - commissionPercentValue) * 100 * buyRateValue;

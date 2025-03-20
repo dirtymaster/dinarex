@@ -1,4 +1,4 @@
-package dirtymaster.freedomexchange.service;
+package dirtymaster.freedomexchange.service.order;
 
 import dirtymaster.freedomexchange.dto.OrderType;
 import dirtymaster.freedomexchange.entity.Active;
@@ -6,6 +6,8 @@ import dirtymaster.freedomexchange.entity.Currency;
 import dirtymaster.freedomexchange.entity.Order;
 import dirtymaster.freedomexchange.repository.ActiveRepository;
 import dirtymaster.freedomexchange.repository.OrderRepository;
+import dirtymaster.freedomexchange.service.AuthService;
+import dirtymaster.freedomexchange.service.OrderService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;

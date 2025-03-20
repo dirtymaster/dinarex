@@ -1,28 +1,18 @@
 package dirtymaster.freedomexchange.controller;
 
-import dirtymaster.freedomexchange.config.CommissionConfig;
+import dirtymaster.freedomexchange.config.OrdersConfig;
 import dirtymaster.freedomexchange.dto.OrderType;
-import dirtymaster.freedomexchange.dto.SummedOrder;
-import dirtymaster.freedomexchange.dto.TradeRequest;
 import dirtymaster.freedomexchange.entity.Currency;
-import dirtymaster.freedomexchange.entity.Order;
 import dirtymaster.freedomexchange.service.ActiveService;
 import dirtymaster.freedomexchange.service.OrderService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 @Controller
 @RequestMapping("/trading")
@@ -30,7 +20,7 @@ import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 public class TradingController {
     private final ActiveService activeService;
     private final OrderService orderService;
-    private final CommissionConfig commissionConfig;
+    private final OrdersConfig ordersConfig;
 
     @GetMapping
     public String tradingPage() {
@@ -48,7 +38,7 @@ public class TradingController {
         }
         model.addAttribute("orderType", orderType.name());
         BigDecimal orderCommission = orderType == OrderType.MARKET ?
-                commissionConfig.getMarketOrderCommission() : commissionConfig.getLimitOrderCommission();
+                ordersConfig.getMarketOrderCommission() : ordersConfig.getLimitOrderCommission();
         model.addAttribute("orderCommission", orderCommission);
         model.addAttribute("currenciesToSell", Currency.values());
         model.addAttribute("activeCurrencyToSell", currencyToSell);
