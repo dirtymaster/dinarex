@@ -7,12 +7,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import javax.money.CurrencyUnit;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
 public interface OrderRepository extends JpaRepository<Order, UUID> {
-    Order findTopRateByCurrencyToSellAndCurrencyToBuy(Currency currencyToSell, Currency currencyToBuy);
+    Order findTopRateByCurrencyToSellAndCurrencyToBuy(CurrencyUnit currencyToSell, CurrencyUnit currencyToBuy);
 
     @Query(value = """
             SELECT o.rate, SUM(o.total_amount_to_sell - o.completed_amount_to_sell) 
@@ -45,8 +46,8 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
             @Param("currencyToBuy") String currencyToBuy, @Param("limit") int limit);
 
     List<Order> findByCompletedAndCurrencyToSellAndCurrencyToBuyAndRateGreaterThanEqualOrderByRateDesc(
-            boolean completed, Currency currencyToSell, Currency currencyToBuy, BigDecimal rate);
+            boolean completed, CurrencyUnit currencyToSell, CurrencyUnit currencyToBuy, BigDecimal rate);
 
     List<Order> findByCompletedAndCurrencyToSellAndCurrencyToBuyOrderByRateDesc(
-            boolean completed, Currency currencyToSell, Currency currencyToBuy);
+            boolean completed, CurrencyUnit currencyToSell, CurrencyUnit currencyToBuy);
 }

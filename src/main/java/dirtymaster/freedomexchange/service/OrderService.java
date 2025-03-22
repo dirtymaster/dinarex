@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.money.Monetary;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
@@ -56,7 +57,7 @@ public class OrderService {
             first = currencyToBuy;
             second = currencyToSell;
         }
-        return orderRepository.findTopRateByCurrencyToSellAndCurrencyToBuy(first, second).getRate();
+        return orderRepository.findTopRateByCurrencyToSellAndCurrencyToBuy(Monetary.getCurrency(first.name()), Monetary.getCurrency(second.name())).getRate();
     }
 
     private List<SummedOrder> get50Orders(Currency currencyToSell, Currency currencyToBuy, SortingType sortingType) {
@@ -87,9 +88,9 @@ public class OrderService {
         BigDecimal invertedRate = invertValue(rate);
         List<Order> orders = isMarket ?
                 orderRepository.findByCompletedAndCurrencyToSellAndCurrencyToBuyOrderByRateDesc(
-                        false, currencyCurrentUserBuying, currencyCurrentUserSelling)
+                        false, Monetary.getCurrency(currencyCurrentUserBuying.name()), Monetary.getCurrency(currencyCurrentUserSelling.name()))
                 : orderRepository.findByCompletedAndCurrencyToSellAndCurrencyToBuyAndRateGreaterThanEqualOrderByRateDesc(
-                        false, currencyCurrentUserBuying, currencyCurrentUserSelling, invertedRate);
+                        false, Monetary.getCurrency(currencyCurrentUserBuying.name()), Monetary.getCurrency(currencyCurrentUserSelling.name()), invertedRate);
         if (!orders.isEmpty()) {
             // Сумма в существующих ордерах в валюте, которую продает текущий пользователь.
             BigDecimal summedAmountInCurrencyCurrentUserSelling = BigDecimal.ZERO;

@@ -1,6 +1,7 @@
 package dirtymaster.freedomexchange.entity;
 
 import dirtymaster.freedomexchange.dto.OrderType;
+import io.hypersistence.utils.hibernate.type.money.CurrencyUnitType;
 import io.hypersistence.utils.hibernate.type.money.MonetaryAmountType;
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
@@ -19,6 +20,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CompositeType;
+import org.hibernate.annotations.Type;
 import org.javamoney.moneta.Money;
 
 import javax.money.CurrencyUnit;
@@ -49,34 +51,36 @@ public class Order {
     private String creator;
 
     public Currency getCurrencyToSell() {
-        return currencyToSell;
+        return Currency.valueOf(currencyToSell.getCurrencyCode());
     }
 
     public void setCurrencyToSell(Currency currencyToSell) {
-        this.currencyToSell = currencyToSell;
+        this.currencyToSell = Monetary.getCurrency(currencyToSell.name());
     }
 
     public Currency getCurrencyToBuy() {
-        return currencyToBuy;
+        return Currency.valueOf(currencyToBuy.getCurrencyCode());
     }
 
     public void setCurrencyToBuy(Currency currencyToBuy) {
-        this.currencyToBuy = currencyToBuy;
+        this.currencyToBuy = Monetary.getCurrency(currencyToBuy.name());
     }
 
     /**
      * Валюта, которую пользователь хочет продать
      */
-    @Enumerated(EnumType.STRING)
+//    @Enumerated(EnumType.STRING)
     @Column(name = "currency_to_sell")
-    private Currency currencyToSell;
+    @Type(CurrencyUnitType.class)
+    private CurrencyUnit currencyToSell;
 
     /**
      * Валюта, которую пользователь хочет купить
      */
-    @Enumerated(EnumType.STRING)
+//    @Enumerated(EnumType.STRING)
     @Column(name = "currency_to_buy")
-    private Currency currencyToBuy;
+    @Type(CurrencyUnitType.class)
+    private CurrencyUnit currencyToBuy;
 
     /**
      * Количество валюты, которую пользователь хочет продать
@@ -152,17 +156,17 @@ public class Order {
     }
 
     public void setCompletedAmountToSell(BigDecimal completedAmountToSell) {
-        this.completedAmountToSell = Money.of(completedAmountToSell, Monetary.getCurrency(currencyToSell.name()));
+        this.completedAmountToSell = Money.of(completedAmountToSell, currencyToSell);
     }
 
     public void setTotalAmountToSell(BigDecimal totalAmountToSell) {
-        this.totalAmountToSell = Money.of(totalAmountToSell, Monetary.getCurrency(currencyToSell.name()));
+        this.totalAmountToSell = Money.of(totalAmountToSell, currencyToSell);
     }
 
     public BigDecimal getNotCompletedAmountInCurrency(Currency currency) {
-        if (currency == currencyToSell) {
+        if (currency.name().equals(currencyToSell.getCurrencyCode())) {
             return getNotCompletedAmountToSell();
-        } else if (currency == currencyToBuy) {
+        } else if (currency.name().equals(currencyToBuy.getCurrencyCode())) {
             return getNotCompletedAmountToBuy();
         } else {
             throw new IllegalArgumentException("Unknown currency: " + currency);
@@ -170,14 +174,13 @@ public class Order {
     }
 
     public void setNotCompletedAmountInCurrency(BigDecimal notCompletedAmount, Currency currency) {
-        CurrencyUnit currencyUnit = Monetary.getCurrency(currencyToSell.name());
-        if (currency == currencyToSell) {
+        if (currency.name().equals(currencyToSell.getCurrencyCode())) {
 //            this.completedAmountToSell = totalAmountToSell.subtract(notCompletedAmount);
-            completedAmountToSell = totalAmountToSell.subtract(Money.of(notCompletedAmount, currencyUnit));
-        } else if (currency == currencyToBuy) {
+            completedAmountToSell = totalAmountToSell.subtract(Money.of(notCompletedAmount, currencyToSell));
+        } else if (currency.name().equals(currencyToBuy.getCurrencyCode())) {
             BigDecimal notCompletedAmountToSell = notCompletedAmount.multiply(rate);
 //            this.completedAmountToSell = totalAmountToSell.subtract(notCompletedAmountToSell);
-            completedAmountToSell = totalAmountToSell.subtract(Money.of(notCompletedAmountToSell, currencyUnit));
+            completedAmountToSell = totalAmountToSell.subtract(Money.of(notCompletedAmountToSell, currencyToSell));
         } else {
             throw new IllegalArgumentException("Unknown currency: " + currency);
         }

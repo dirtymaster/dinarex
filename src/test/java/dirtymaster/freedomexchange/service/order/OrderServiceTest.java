@@ -124,7 +124,7 @@ public class OrderServiceTest {
         userBuyingEurActiveRub = activeRepository.findByUsernameAndCurrency(USER_BUYING_EUR, Currency.RUB);
         assertThat(userBuyingEurActiveRub.getAmount()).isEqualByComparingTo(BigDecimal.ZERO);
 
-        Order orderSellingEur = orderRepository.findByCompletedAndCurrencyToSellAndCurrencyToBuyOrderByRateDesc(true, Currency.EUR, Currency.RUB).get(0);
+        Order orderSellingEur = orderRepository.findByCompletedAndCurrencyToSellAndCurrencyToBuyOrderByRateDesc(true, EUR, RUB).get(0);
         assertThat(orderSellingEur)
                 .satisfies(o -> {
                     assertThat(o.getCreator()).isEqualTo(USER_SELLING_EUR);
@@ -139,7 +139,7 @@ public class OrderServiceTest {
                     assertThat(o.getCompletedAt()).isAfter(LocalDateTime.now().minusSeconds(10));
                 });
 
-        Order orderBuyingEur = orderRepository.findByCompletedAndCurrencyToSellAndCurrencyToBuyOrderByRateDesc(true, Currency.RUB, Currency.EUR).get(0);
+        Order orderBuyingEur = orderRepository.findByCompletedAndCurrencyToSellAndCurrencyToBuyOrderByRateDesc(true, RUB, EUR).get(0);
         assertThat(orderBuyingEur)
                 .satisfies(o -> {
                     assertThat(o.getCreator()).isEqualTo(USER_BUYING_EUR);
@@ -176,7 +176,7 @@ public class OrderServiceTest {
         Active userBuyingEurActiveRub = activeRepository.findByUsernameAndCurrency(USER_BUYING_EUR, Currency.RUB);
         assertThat(userBuyingEurActiveRub.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(50));
 
-        Order orderSellingEur = orderRepository.findByCompletedAndCurrencyToSellAndCurrencyToBuyOrderByRateDesc(false, Currency.EUR, Currency.RUB).get(0);
+        Order orderSellingEur = orderRepository.findByCompletedAndCurrencyToSellAndCurrencyToBuyOrderByRateDesc(false, EUR, RUB).get(0);
         assertThat(orderSellingEur)
                 .satisfies(o -> {
                     assertThat(o.getCreator()).isEqualTo(USER_SELLING_EUR);
@@ -191,7 +191,7 @@ public class OrderServiceTest {
                     assertThat(o.getCompletedAt()).isNull();
                 });
 
-        Order orderBuyingEur = orderRepository.findByCompletedAndCurrencyToSellAndCurrencyToBuyOrderByRateDesc(true, Currency.RUB, Currency.EUR).get(0);
+        Order orderBuyingEur = orderRepository.findByCompletedAndCurrencyToSellAndCurrencyToBuyOrderByRateDesc(true, RUB, EUR).get(0);
         assertThat(orderBuyingEur)
                 .satisfies(o -> {
                     assertThat(o.getCreator()).isEqualTo(USER_BUYING_EUR);
@@ -230,7 +230,7 @@ public class OrderServiceTest {
         Active userBuyingEurActiveRub = activeRepository.findByUsernameAndCurrency(USER_BUYING_EUR, Currency.RUB);
         assertThat(userBuyingEurActiveRub.getAmount()).isEqualByComparingTo(BigDecimal.ZERO);
 
-        Order orderSellingEur = orderRepository.findByCompletedAndCurrencyToSellAndCurrencyToBuyOrderByRateDesc(true, Currency.EUR, Currency.RUB).get(0);
+        Order orderSellingEur = orderRepository.findByCompletedAndCurrencyToSellAndCurrencyToBuyOrderByRateDesc(true, EUR, RUB).get(0);
         assertThat(orderSellingEur)
                 .satisfies(o -> {
                     assertThat(o.getCreator()).isEqualTo(USER_SELLING_EUR);
@@ -245,7 +245,7 @@ public class OrderServiceTest {
                     assertThat(o.getCompletedAt()).isAfter(LocalDateTime.now().minusSeconds(10));
                 });
 
-        Order orderBuyingEur = orderRepository.findByCompletedAndCurrencyToSellAndCurrencyToBuyOrderByRateDesc(false, Currency.RUB, Currency.EUR).get(0);
+        Order orderBuyingEur = orderRepository.findByCompletedAndCurrencyToSellAndCurrencyToBuyOrderByRateDesc(false, RUB, EUR).get(0);
         assertThat(orderBuyingEur)
                 .satisfies(o -> {
                     assertThat(o.getCreator()).isEqualTo(USER_BUYING_EUR);
