@@ -48,6 +48,22 @@ public class Order {
      */
     private String creator;
 
+    public Currency getCurrencyToSell() {
+        return currencyToSell;
+    }
+
+    public void setCurrencyToSell(Currency currencyToSell) {
+        this.currencyToSell = currencyToSell;
+    }
+
+    public Currency getCurrencyToBuy() {
+        return currencyToBuy;
+    }
+
+    public void setCurrencyToBuy(Currency currencyToBuy) {
+        this.currencyToBuy = currencyToBuy;
+    }
+
     /**
      * Валюта, которую пользователь хочет продать
      */

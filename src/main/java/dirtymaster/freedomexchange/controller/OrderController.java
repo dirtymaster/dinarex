@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import javax.money.CurrencyUnit;
 import java.math.BigDecimal;
 import java.util.Map;
 
@@ -28,12 +29,13 @@ public class OrderController {
     }
 
     @PostMapping("/{currencyToSell}/{currencyToBuy}")
-    public String createOrder(@PathVariable Currency currencyToSell,
-                              @PathVariable Currency currencyToBuy,
+    public String createOrder(@PathVariable CurrencyUnit currencyToSell,
+                              @PathVariable CurrencyUnit currencyToBuy,
                               @RequestParam BigDecimal amountToSell,
                               @RequestParam OrderType orderType,
                               @RequestParam(required = false) BigDecimal rate) {
-        orderService.processOrder(currencyToSell, currencyToBuy, orderType, amountToSell, rate);
+        orderService.processOrder(Currency.valueOf(currencyToSell.getCurrencyCode()),
+                Currency.valueOf(currencyToBuy.getCurrencyCode()), orderType, amountToSell, rate);
         return "redirect:/trading/" + currencyToSell + "/" + currencyToBuy;
     }
 }
