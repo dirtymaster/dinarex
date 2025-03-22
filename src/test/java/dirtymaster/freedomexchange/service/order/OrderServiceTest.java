@@ -8,6 +8,7 @@ import dirtymaster.freedomexchange.repository.ActiveRepository;
 import dirtymaster.freedomexchange.repository.OrderRepository;
 import dirtymaster.freedomexchange.service.AuthService;
 import dirtymaster.freedomexchange.service.OrderService;
+import org.javamoney.moneta.Money;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +20,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import javax.money.CurrencyUnit;
+import javax.money.Monetary;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -43,6 +46,8 @@ public class OrderServiceTest {
     private static final String USER_SELLING_EUR = "userSellingEur@gmail.com";
     private static final String USER_BUYING_EUR = "userBuyingEur@gmail.com";
     private static final String PASSWORD = "password";
+    private static final CurrencyUnit EUR = Monetary.getCurrency("EUR");
+    private static final CurrencyUnit RUB = Monetary.getCurrency("RUB");
 
     @BeforeAll
     void beforeAll() {
@@ -84,8 +89,8 @@ public class OrderServiceTest {
                     assertThat(o.getCreator()).isEqualTo(USER_SELLING_EUR);
                     assertThat(o.getCurrencyToSell()).isEqualTo(Currency.EUR);
                     assertThat(o.getCurrencyToBuy()).isEqualTo(Currency.RUB);
-                    assertThat(o.getTotalAmountToSell()).isEqualByComparingTo(BigDecimal.valueOf(1));
-                    assertThat(o.getCompletedAmountToSell()).isEqualByComparingTo(BigDecimal.ZERO);
+                    assertThat(o.getTotalAmountToSell()).isEqualTo(Money.of(BigDecimal.valueOf(1), EUR));
+                    assertThat(o.getCompletedAmountToSell()).isEqualTo(Money.of(BigDecimal.ZERO, EUR));
                     assertThat(o.isCompleted()).isFalse();
                     assertThat(o.getOrderType()).isEqualTo(OrderType.LIMIT);
                     assertThat(o.getRate()).isEqualByComparingTo(BigDecimal.valueOf(0.01));
@@ -125,8 +130,8 @@ public class OrderServiceTest {
                     assertThat(o.getCreator()).isEqualTo(USER_SELLING_EUR);
                     assertThat(o.getCurrencyToSell()).isEqualTo(Currency.EUR);
                     assertThat(o.getCurrencyToBuy()).isEqualTo(Currency.RUB);
-                    assertThat(o.getTotalAmountToSell()).isEqualByComparingTo(BigDecimal.valueOf(1));
-                    assertThat(o.getCompletedAmountToSell()).isEqualByComparingTo(BigDecimal.valueOf(1));
+                    assertThat(o.getTotalAmountToSell()).isEqualTo(Money.of(BigDecimal.valueOf(1), EUR));
+                    assertThat(o.getCompletedAmountToSell()).isEqualTo(Money.of(BigDecimal.valueOf(1), EUR));
                     assertThat(o.isCompleted()).isTrue();
                     assertThat(o.getOrderType()).isEqualTo(OrderType.LIMIT);
                     assertThat(o.getRate()).isEqualByComparingTo(BigDecimal.valueOf(0.01));
@@ -140,8 +145,8 @@ public class OrderServiceTest {
                     assertThat(o.getCreator()).isEqualTo(USER_BUYING_EUR);
                     assertThat(o.getCurrencyToSell()).isEqualTo(Currency.RUB);
                     assertThat(o.getCurrencyToBuy()).isEqualTo(Currency.EUR);
-                    assertThat(o.getTotalAmountToSell()).isEqualByComparingTo(BigDecimal.valueOf(100));
-                    assertThat(o.getCompletedAmountToSell()).isEqualByComparingTo(BigDecimal.valueOf(100));
+                    assertThat(o.getTotalAmountToSell()).isEqualTo(Money.of(BigDecimal.valueOf(100), RUB));
+                    assertThat(o.getCompletedAmountToSell()).isEqualTo(Money.of(BigDecimal.valueOf(100), RUB));
                     assertThat(o.isCompleted()).isTrue();
                     assertThat(o.getOrderType()).isEqualTo(OrderType.LIMIT);
                     assertThat(o.getRate()).isEqualByComparingTo(BigDecimal.valueOf(100));
@@ -160,9 +165,7 @@ public class OrderServiceTest {
         Active userSellingEurActiveEur = activeRepository.findByUsernameAndCurrency(USER_SELLING_EUR, Currency.EUR);
         assertThat(userSellingEurActiveEur.getAmount()).isEqualByComparingTo(BigDecimal.ZERO);
 
-        UsernamePasswordAuthenticationToken auth2 =
-                new UsernamePasswordAuthenticationToken(USER_BUYING_EUR, "password", List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
-        SecurityContextHolder.getContext().setAuthentication(auth2);
+        authenticateUser(USER_BUYING_EUR);
         orderService.processOrder(Currency.RUB, Currency.EUR, OrderType.LIMIT, BigDecimal.valueOf(50), BigDecimal.valueOf(100));
 
         // checks
@@ -179,8 +182,8 @@ public class OrderServiceTest {
                     assertThat(o.getCreator()).isEqualTo(USER_SELLING_EUR);
                     assertThat(o.getCurrencyToSell()).isEqualTo(Currency.EUR);
                     assertThat(o.getCurrencyToBuy()).isEqualTo(Currency.RUB);
-                    assertThat(o.getTotalAmountToSell()).isEqualByComparingTo(BigDecimal.valueOf(1));
-                    assertThat(o.getCompletedAmountToSell()).isEqualByComparingTo(BigDecimal.valueOf(0.5));
+                    assertThat(o.getTotalAmountToSell()).isEqualTo(Money.of(BigDecimal.valueOf(1), EUR));
+                    assertThat(o.getCompletedAmountToSell()).isEqualTo(Money.of(BigDecimal.valueOf(0.5), EUR));
                     assertThat(o.isCompleted()).isFalse();
                     assertThat(o.getOrderType()).isEqualTo(OrderType.LIMIT);
                     assertThat(o.getRate()).isEqualByComparingTo(BigDecimal.valueOf(0.01));
@@ -194,8 +197,8 @@ public class OrderServiceTest {
                     assertThat(o.getCreator()).isEqualTo(USER_BUYING_EUR);
                     assertThat(o.getCurrencyToSell()).isEqualTo(Currency.RUB);
                     assertThat(o.getCurrencyToBuy()).isEqualTo(Currency.EUR);
-                    assertThat(o.getTotalAmountToSell()).isEqualByComparingTo(BigDecimal.valueOf(50));
-                    assertThat(o.getCompletedAmountToSell()).isEqualByComparingTo(BigDecimal.valueOf(50));
+                    assertThat(o.getTotalAmountToSell()).isEqualTo(Money.of(BigDecimal.valueOf(50), RUB));
+                    assertThat(o.getCompletedAmountToSell()).isEqualTo(Money.of(BigDecimal.valueOf(50), RUB));
                     assertThat(o.isCompleted()).isTrue();
                     assertThat(o.getOrderType()).isEqualTo(OrderType.LIMIT);
                     assertThat(o.getRate()).isEqualByComparingTo(BigDecimal.valueOf(100));
@@ -233,8 +236,8 @@ public class OrderServiceTest {
                     assertThat(o.getCreator()).isEqualTo(USER_SELLING_EUR);
                     assertThat(o.getCurrencyToSell()).isEqualTo(Currency.EUR);
                     assertThat(o.getCurrencyToBuy()).isEqualTo(Currency.RUB);
-                    assertThat(o.getTotalAmountToSell()).isEqualByComparingTo(BigDecimal.valueOf(0.5));
-                    assertThat(o.getCompletedAmountToSell()).isEqualByComparingTo(BigDecimal.valueOf(0.5));
+                    assertThat(o.getTotalAmountToSell()).isEqualTo(Money.of(BigDecimal.valueOf(0.5), EUR));
+                    assertThat(o.getCompletedAmountToSell()).isEqualTo(Money.of(BigDecimal.valueOf(0.5), EUR));
                     assertThat(o.isCompleted()).isTrue();
                     assertThat(o.getOrderType()).isEqualTo(OrderType.LIMIT);
                     assertThat(o.getRate()).isEqualByComparingTo(BigDecimal.valueOf(0.01));
@@ -248,8 +251,8 @@ public class OrderServiceTest {
                     assertThat(o.getCreator()).isEqualTo(USER_BUYING_EUR);
                     assertThat(o.getCurrencyToSell()).isEqualTo(Currency.RUB);
                     assertThat(o.getCurrencyToBuy()).isEqualTo(Currency.EUR);
-                    assertThat(o.getTotalAmountToSell()).isEqualByComparingTo(BigDecimal.valueOf(100));
-                    assertThat(o.getCompletedAmountToSell()).isEqualByComparingTo(BigDecimal.valueOf(50));
+                    assertThat(o.getTotalAmountToSell()).isEqualTo(Money.of(BigDecimal.valueOf(100), RUB));
+                    assertThat(o.getCompletedAmountToSell()).isEqualTo(Money.of(BigDecimal.valueOf(50), RUB));
                     assertThat(o.isCompleted()).isFalse();
                     assertThat(o.getOrderType()).isEqualTo(OrderType.LIMIT);
                     assertThat(o.getRate()).isEqualByComparingTo(BigDecimal.valueOf(100));

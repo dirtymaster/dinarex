@@ -1,6 +1,8 @@
 package dirtymaster.freedomexchange.entity;
 
 import dirtymaster.freedomexchange.dto.OrderType;
+import io.hypersistence.utils.hibernate.type.money.MonetaryAmountType;
+import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -16,7 +18,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CompositeType;
+import org.javamoney.moneta.Money;
 
+import javax.money.CurrencyUnit;
+import javax.money.Monetary;
+import javax.money.MonetaryAmount;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
@@ -58,14 +65,29 @@ public class Order {
     /**
      * Количество валюты, которую пользователь хочет продать
      */
-    @Column(precision = 19, scale = 6)
-    private BigDecimal totalAmountToSell;
-
+    @AttributeOverride(
+            name = "amount",
+            column = @Column(name = "total_amount_to_sell")
+    )
+    @AttributeOverride(
+            name = "currency",
+            column = @Column(name = "currency_to_sell", insertable=false, updatable=false)
+    )
+    @CompositeType(MonetaryAmountType.class)
+    private MonetaryAmount totalAmountToSell;
     /**
      * Количество валюты, которая уже продана в рамках ордера
      */
-    @Column(precision = 19, scale = 6)
-    private BigDecimal completedAmountToSell;
+    @AttributeOverride(
+            name = "amount",
+            column = @Column(name = "completed_amount_to_sell")
+    )
+    @AttributeOverride(
+            name = "currency",
+            column = @Column(name = "currency_to_sell", insertable=false, updatable=false)
+    )
+    @CompositeType(MonetaryAmountType.class)
+    private MonetaryAmount completedAmountToSell;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumns({
@@ -80,18 +102,15 @@ public class Order {
             @JoinColumn(name = "currency_to_buy", referencedColumnName = "currency", insertable = false, updatable = false)
     })
     private Active activeToBuy;
-
     /**
      * Признак завершенности ордера
      */
     private boolean completed;
-
     /**
      * Тип ордера (MARKET, LIMIT)
      */
     @Enumerated(EnumType.STRING)
     private OrderType orderType;
-
     /**
      * rate = 1 currencyToSell / 1 currencyToBuy
      * 1 currencyToSell = 1 currencyToBuy * rate
@@ -99,16 +118,30 @@ public class Order {
      */
     @Column(precision = 19, scale = 6)
     private BigDecimal rate;
-
     /**
      * Время и дата создания ордера
      */
     private LocalDateTime createdAt;
-
     /**
      * Время и дата завершения ордера
      */
     private LocalDateTime completedAt;
+
+    public void setTotalAmountToSell(MonetaryAmount totalAmountToSell) {
+        this.totalAmountToSell = totalAmountToSell;
+    }
+
+    public void setCompletedAmountToSell(MonetaryAmount completedAmountToSell) {
+        this.completedAmountToSell = completedAmountToSell;
+    }
+
+    public void setCompletedAmountToSell(BigDecimal completedAmountToSell) {
+        this.completedAmountToSell = Money.of(completedAmountToSell, Monetary.getCurrency(currencyToSell.name()));
+    }
+
+    public void setTotalAmountToSell(BigDecimal totalAmountToSell) {
+        this.totalAmountToSell = Money.of(totalAmountToSell, Monetary.getCurrency(currencyToSell.name()));
+    }
 
     public BigDecimal getNotCompletedAmountInCurrency(Currency currency) {
         if (currency == currencyToSell) {
@@ -121,18 +154,22 @@ public class Order {
     }
 
     public void setNotCompletedAmountInCurrency(BigDecimal notCompletedAmount, Currency currency) {
+        CurrencyUnit currencyUnit = Monetary.getCurrency(currencyToSell.name());
         if (currency == currencyToSell) {
-            this.completedAmountToSell = totalAmountToSell.subtract(notCompletedAmount);
+//            this.completedAmountToSell = totalAmountToSell.subtract(notCompletedAmount);
+            completedAmountToSell = totalAmountToSell.subtract(Money.of(notCompletedAmount, currencyUnit));
         } else if (currency == currencyToBuy) {
             BigDecimal notCompletedAmountToSell = notCompletedAmount.multiply(rate);
-            this.completedAmountToSell = totalAmountToSell.subtract(notCompletedAmountToSell);
+//            this.completedAmountToSell = totalAmountToSell.subtract(notCompletedAmountToSell);
+            completedAmountToSell = totalAmountToSell.subtract(Money.of(notCompletedAmountToSell, currencyUnit));
         } else {
             throw new IllegalArgumentException("Unknown currency: " + currency);
         }
     }
 
     private BigDecimal getNotCompletedAmountToSell() {
-        return totalAmountToSell.subtract(completedAmountToSell);
+//        return totalAmountToSell.subtract(completedAmountToSell);
+        return ((Money) totalAmountToSell.subtract(completedAmountToSell)).getNumberStripped();
     }
 
     private BigDecimal getNotCompletedAmountToBuy() {

@@ -38,7 +38,7 @@ dependencies {
     // https://mvnrepository.com/artifact/org.javamoney/moneta
     implementation 'org.javamoney:moneta:1.4.4'
     // https://mvnrepository.com/artifact/io.hypersistence/hypersistence-utils-hibernate-60
-    implementation 'io.hypersistence:hypersistence-utils-hibernate-60:3.9.4'
+    implementation 'io.hypersistence:hypersistence-utils-hibernate-63:3.9.5'
 
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
