@@ -1,7 +1,6 @@
 package dirtymaster.freedomexchange.repository;
 
 import dirtymaster.freedomexchange.dto.SummedOrder;
-import dirtymaster.freedomexchange.entity.Currency;
 import dirtymaster.freedomexchange.entity.Order;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

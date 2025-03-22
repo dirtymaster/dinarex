@@ -13,26 +13,20 @@ import org.springframework.stereotype.Component;
 public class MyEventListener {
     private final OrderRepository orderRepository;
 
-    @Async
-    @EventListener(ApplicationReadyEvent.class)
-    public void runAsyncTask() {
-        //TODO удалить в реальном приложении
-        System.out.println("Асинхронная операция запущена...");
-        for (Order order : orderRepository.findAll()) {
-            orderRepository.delete(order);
-            System.out.println("aboba");
-            try {
-                Thread.sleep(1000); // Имитация долгой операции
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
-        System.out.println("Асинхронная операция завершена.");
-    }
-
-    @Async
-    @EventListener(ApplicationReadyEvent.class)
-    public void aboba() {
-        //TODO реализовать обработку ордеров по рынку
-    }
+//    @Async
+//    @EventListener(ApplicationReadyEvent.class)
+//    public void runAsyncTask() {
+//        //TODO удалить в реальном приложении
+//        System.out.println("Асинхронная операция запущена...");
+//        for (Order order : orderRepository.findAll()) {
+//            orderRepository.delete(order);
+//            System.out.println("aboba");
+//            try {
+//                Thread.sleep(1000); // Имитация долгой операции
+//            } catch (InterruptedException e) {
+//                Thread.currentThread().interrupt();
+//            }
+//        }
+//        System.out.println("Асинхронная операция завершена.");
+//    }
 }

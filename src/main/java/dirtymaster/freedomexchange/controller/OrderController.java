@@ -1,7 +1,6 @@
 package dirtymaster.freedomexchange.controller;
 
 import dirtymaster.freedomexchange.dto.OrderType;
-import dirtymaster.freedomexchange.entity.Currency;
 import dirtymaster.freedomexchange.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -24,7 +23,7 @@ public class OrderController {
 
     @GetMapping("/{currencyToSell}/{currencyToBuy}/table")
     @ResponseBody
-    public Map<String, Object> getOrders(@PathVariable Currency currencyToSell, @PathVariable Currency currencyToBuy) {
+    public Map<String, Object> getOrders(@PathVariable CurrencyUnit currencyToSell, @PathVariable CurrencyUnit currencyToBuy) {
         return orderService.getOrders(currencyToSell, currencyToBuy);
     }
 
@@ -34,8 +33,7 @@ public class OrderController {
                               @RequestParam BigDecimal amountToSell,
                               @RequestParam OrderType orderType,
                               @RequestParam(required = false) BigDecimal rate) {
-        orderService.processOrder(Currency.valueOf(currencyToSell.getCurrencyCode()),
-                Currency.valueOf(currencyToBuy.getCurrencyCode()), orderType, amountToSell, rate);
+        orderService.processOrder(currencyToSell, currencyToBuy, orderType, amountToSell, rate);
         return "redirect:/trading/" + currencyToSell + "/" + currencyToBuy;
     }
 }

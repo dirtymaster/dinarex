@@ -24,7 +24,6 @@ import org.hibernate.annotations.Type;
 import org.javamoney.moneta.Money;
 
 import javax.money.CurrencyUnit;
-import javax.money.Monetary;
 import javax.money.MonetaryAmount;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -49,22 +48,6 @@ public class Order {
      * Создатель ордера
      */
     private String creator;
-
-    public Currency getCurrencyToSell() {
-        return Currency.valueOf(currencyToSell.getCurrencyCode());
-    }
-
-    public void setCurrencyToSell(Currency currencyToSell) {
-        this.currencyToSell = Monetary.getCurrency(currencyToSell.name());
-    }
-
-    public Currency getCurrencyToBuy() {
-        return Currency.valueOf(currencyToBuy.getCurrencyCode());
-    }
-
-    public void setCurrencyToBuy(Currency currencyToBuy) {
-        this.currencyToBuy = Monetary.getCurrency(currencyToBuy.name());
-    }
 
     /**
      * Валюта, которую пользователь хочет продать
@@ -95,6 +78,7 @@ public class Order {
     )
     @CompositeType(MonetaryAmountType.class)
     private MonetaryAmount totalAmountToSell;
+
     /**
      * Количество валюты, которая уже продана в рамках ордера
      */
@@ -163,21 +147,21 @@ public class Order {
         this.totalAmountToSell = Money.of(totalAmountToSell, currencyToSell);
     }
 
-    public BigDecimal getNotCompletedAmountInCurrency(Currency currency) {
-        if (currency.name().equals(currencyToSell.getCurrencyCode())) {
+    public BigDecimal getNotCompletedAmountInCurrency(CurrencyUnit currency) {
+        if (currency.equals(currencyToSell)) {
             return getNotCompletedAmountToSell();
-        } else if (currency.name().equals(currencyToBuy.getCurrencyCode())) {
+        } else if (currency.equals(currencyToBuy)) {
             return getNotCompletedAmountToBuy();
         } else {
             throw new IllegalArgumentException("Unknown currency: " + currency);
         }
     }
 
-    public void setNotCompletedAmountInCurrency(BigDecimal notCompletedAmount, Currency currency) {
-        if (currency.name().equals(currencyToSell.getCurrencyCode())) {
+    public void setNotCompletedAmountInCurrency(BigDecimal notCompletedAmount, CurrencyUnit currency) {
+        if (currency.equals(currencyToSell)) {
 //            this.completedAmountToSell = totalAmountToSell.subtract(notCompletedAmount);
             completedAmountToSell = totalAmountToSell.subtract(Money.of(notCompletedAmount, currencyToSell));
-        } else if (currency.name().equals(currencyToBuy.getCurrencyCode())) {
+        } else if (currency.equals(currencyToBuy)) {
             BigDecimal notCompletedAmountToSell = notCompletedAmount.multiply(rate);
 //            this.completedAmountToSell = totalAmountToSell.subtract(notCompletedAmountToSell);
             completedAmountToSell = totalAmountToSell.subtract(Money.of(notCompletedAmountToSell, currencyToSell));

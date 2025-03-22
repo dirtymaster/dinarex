@@ -2,7 +2,6 @@ package dirtymaster.freedomexchange.service.order;
 
 import dirtymaster.freedomexchange.dto.OrderType;
 import dirtymaster.freedomexchange.entity.Active;
-import dirtymaster.freedomexchange.entity.Currency;
 import dirtymaster.freedomexchange.entity.Order;
 import dirtymaster.freedomexchange.repository.ActiveRepository;
 import dirtymaster.freedomexchange.repository.OrderRepository;
@@ -21,15 +20,13 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import javax.money.CurrencyUnit;
-import javax.money.Monetary;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static dirtymaster.freedomexchange.constant.CurrencyUnitConstants.EUR;
+import static dirtymaster.freedomexchange.constant.CurrencyUnitConstants.RUB;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -46,8 +43,6 @@ public class OrderServiceTest {
     private static final String USER_SELLING_EUR = "userSellingEur@gmail.com";
     private static final String USER_BUYING_EUR = "userBuyingEur@gmail.com";
     private static final String PASSWORD = "password";
-    private static final CurrencyUnit EUR = Monetary.getCurrency("EUR");
-    private static final CurrencyUnit RUB = Monetary.getCurrency("RUB");
 
     @BeforeAll
     void beforeAll() {
@@ -74,21 +69,21 @@ public class OrderServiceTest {
 
     @Test
     void createLimitOrderWhenOrderBookIsEmpty() {
-        Active userSellingEurActiveEur = activeRepository.findByUsernameAndCurrency(USER_SELLING_EUR, Currency.EUR);
-        userSellingEurActiveEur.setAmount(BigDecimal.valueOf(10));
+        Active userSellingEurActiveEur = activeRepository.findByUsernameAndCurrency(USER_SELLING_EUR, EUR);
+        userSellingEurActiveEur.setMonetaryAmount(Money.of(BigDecimal.valueOf(10), EUR));
         activeRepository.save(userSellingEurActiveEur);
         authenticateUser(USER_SELLING_EUR);
-        orderService.processOrder(Currency.EUR, Currency.RUB, OrderType.LIMIT, BigDecimal.valueOf(1), BigDecimal.valueOf(0.01));
+        orderService.processOrder(EUR, RUB, OrderType.LIMIT, BigDecimal.valueOf(1), BigDecimal.valueOf(0.01));
 
         // checks
-        userSellingEurActiveEur = activeRepository.findByUsernameAndCurrency(USER_SELLING_EUR, Currency.EUR);
-        assertThat(userSellingEurActiveEur.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(9));
+        userSellingEurActiveEur = activeRepository.findByUsernameAndCurrency(USER_SELLING_EUR, EUR);
+        assertThat(userSellingEurActiveEur.getMonetaryAmount()).isEqualTo(Money.of(BigDecimal.valueOf(9), EUR));
         Order order = orderRepository.findAll().get(0);
         assertThat(order)
                 .satisfies(o -> {
                     assertThat(o.getCreator()).isEqualTo(USER_SELLING_EUR);
-                    assertThat(o.getCurrencyToSell()).isEqualTo(Currency.EUR);
-                    assertThat(o.getCurrencyToBuy()).isEqualTo(Currency.RUB);
+                    assertThat(o.getCurrencyToSell()).isEqualTo(EUR);
+                    assertThat(o.getCurrencyToBuy()).isEqualTo(RUB);
                     assertThat(o.getTotalAmountToSell()).isEqualTo(Money.of(BigDecimal.valueOf(1), EUR));
                     assertThat(o.getCompletedAmountToSell()).isEqualTo(Money.of(BigDecimal.ZERO, EUR));
                     assertThat(o.isCompleted()).isFalse();
@@ -101,35 +96,35 @@ public class OrderServiceTest {
 
     @Test
     void matchLimitOrderWithExistingOrderInBook() {
-        Active userSellingEurActiveEur = activeRepository.findByUsernameAndCurrency(USER_SELLING_EUR, Currency.EUR);
-        userSellingEurActiveEur.setAmount(BigDecimal.valueOf(2));
+        Active userSellingEurActiveEur = activeRepository.findByUsernameAndCurrency(USER_SELLING_EUR, EUR);
+        userSellingEurActiveEur.setMonetaryAmount(Money.of(BigDecimal.valueOf(2), EUR));
         activeRepository.save(userSellingEurActiveEur);
-        Active userBuyingEurActiveRub = activeRepository.findByUsernameAndCurrency(USER_BUYING_EUR, Currency.RUB);
-        userBuyingEurActiveRub.setAmount(BigDecimal.valueOf(100));
+        Active userBuyingEurActiveRub = activeRepository.findByUsernameAndCurrency(USER_BUYING_EUR, RUB);
+        userBuyingEurActiveRub.setMonetaryAmount(Money.of(BigDecimal.valueOf(100), RUB));
         activeRepository.save(userBuyingEurActiveRub);
 
         authenticateUser(USER_SELLING_EUR);
-        orderService.processOrder(Currency.EUR, Currency.RUB, OrderType.LIMIT, BigDecimal.valueOf(1), BigDecimal.valueOf(0.01));
-        userSellingEurActiveEur = activeRepository.findByUsernameAndCurrency(USER_SELLING_EUR, Currency.EUR);
-        assertThat(userSellingEurActiveEur.getAmount()).isEqualByComparingTo(BigDecimal.ONE);
+        orderService.processOrder(EUR, RUB, OrderType.LIMIT, BigDecimal.valueOf(1), BigDecimal.valueOf(0.01));
+        userSellingEurActiveEur = activeRepository.findByUsernameAndCurrency(USER_SELLING_EUR, EUR);
+        assertThat(userSellingEurActiveEur.getMonetaryAmount()).isEqualTo(Money.of(BigDecimal.ONE, EUR));
 
         authenticateUser(USER_BUYING_EUR);
-        orderService.processOrder(Currency.RUB, Currency.EUR, OrderType.LIMIT, BigDecimal.valueOf(100), BigDecimal.valueOf(100));
+        orderService.processOrder(RUB, EUR, OrderType.LIMIT, BigDecimal.valueOf(100), BigDecimal.valueOf(100));
 
         // checks
-        Active userSellingEurActiveRub = activeRepository.findByUsernameAndCurrency(USER_SELLING_EUR, Currency.RUB);
-        assertThat(userSellingEurActiveRub.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(100));
-        Active userBuyingEurActiveEur = activeRepository.findByUsernameAndCurrency(USER_BUYING_EUR, Currency.EUR);
-        assertThat(userBuyingEurActiveEur.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(1));
-        userBuyingEurActiveRub = activeRepository.findByUsernameAndCurrency(USER_BUYING_EUR, Currency.RUB);
-        assertThat(userBuyingEurActiveRub.getAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+        Active userSellingEurActiveRub = activeRepository.findByUsernameAndCurrency(USER_SELLING_EUR, RUB);
+        assertThat(userSellingEurActiveRub.getMonetaryAmount()).isEqualTo(Money.of(BigDecimal.valueOf(100), RUB));
+        Active userBuyingEurActiveEur = activeRepository.findByUsernameAndCurrency(USER_BUYING_EUR, EUR);
+        assertThat(userBuyingEurActiveEur.getMonetaryAmount()).isEqualTo(Money.of(BigDecimal.valueOf(1), EUR));
+        userBuyingEurActiveRub = activeRepository.findByUsernameAndCurrency(USER_BUYING_EUR, RUB);
+        assertThat(userBuyingEurActiveRub.getMonetaryAmount()).isEqualTo(Money.zero(RUB));
 
         Order orderSellingEur = orderRepository.findByCompletedAndCurrencyToSellAndCurrencyToBuyOrderByRateDesc(true, EUR, RUB).get(0);
         assertThat(orderSellingEur)
                 .satisfies(o -> {
                     assertThat(o.getCreator()).isEqualTo(USER_SELLING_EUR);
-                    assertThat(o.getCurrencyToSell()).isEqualTo(Currency.EUR);
-                    assertThat(o.getCurrencyToBuy()).isEqualTo(Currency.RUB);
+                    assertThat(o.getCurrencyToSell()).isEqualTo(EUR);
+                    assertThat(o.getCurrencyToBuy()).isEqualTo(RUB);
                     assertThat(o.getTotalAmountToSell()).isEqualTo(Money.of(BigDecimal.valueOf(1), EUR));
                     assertThat(o.getCompletedAmountToSell()).isEqualTo(Money.of(BigDecimal.valueOf(1), EUR));
                     assertThat(o.isCompleted()).isTrue();
@@ -143,8 +138,8 @@ public class OrderServiceTest {
         assertThat(orderBuyingEur)
                 .satisfies(o -> {
                     assertThat(o.getCreator()).isEqualTo(USER_BUYING_EUR);
-                    assertThat(o.getCurrencyToSell()).isEqualTo(Currency.RUB);
-                    assertThat(o.getCurrencyToBuy()).isEqualTo(Currency.EUR);
+                    assertThat(o.getCurrencyToSell()).isEqualTo(RUB);
+                    assertThat(o.getCurrencyToBuy()).isEqualTo(EUR);
                     assertThat(o.getTotalAmountToSell()).isEqualTo(Money.of(BigDecimal.valueOf(100), RUB));
                     assertThat(o.getCompletedAmountToSell()).isEqualTo(Money.of(BigDecimal.valueOf(100), RUB));
                     assertThat(o.isCompleted()).isTrue();
@@ -157,31 +152,31 @@ public class OrderServiceTest {
 
     @Test
     void partiallyMatchLimitOrderDueToInsufficientVolume() {
-        setActiveBalance(USER_SELLING_EUR, Currency.EUR, BigDecimal.valueOf(1));
-        setActiveBalance(USER_BUYING_EUR, Currency.RUB, BigDecimal.valueOf(100));
+        setActiveBalance(USER_SELLING_EUR, EUR, BigDecimal.valueOf(1));
+        setActiveBalance(USER_BUYING_EUR, RUB, BigDecimal.valueOf(100));
 
         authenticateUser(USER_SELLING_EUR);
-        orderService.processOrder(Currency.EUR, Currency.RUB, OrderType.LIMIT, BigDecimal.valueOf(1), BigDecimal.valueOf(0.01));
-        Active userSellingEurActiveEur = activeRepository.findByUsernameAndCurrency(USER_SELLING_EUR, Currency.EUR);
-        assertThat(userSellingEurActiveEur.getAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+        orderService.processOrder(EUR, RUB, OrderType.LIMIT, BigDecimal.valueOf(1), BigDecimal.valueOf(0.01));
+        Active userSellingEurActiveEur = activeRepository.findByUsernameAndCurrency(USER_SELLING_EUR, EUR);
+        assertThat(userSellingEurActiveEur.getMonetaryAmount()).isEqualTo(Money.zero(EUR));
 
         authenticateUser(USER_BUYING_EUR);
-        orderService.processOrder(Currency.RUB, Currency.EUR, OrderType.LIMIT, BigDecimal.valueOf(50), BigDecimal.valueOf(100));
+        orderService.processOrder(RUB, EUR, OrderType.LIMIT, BigDecimal.valueOf(50), BigDecimal.valueOf(100));
 
         // checks
-        Active userSellingEurActiveRub = activeRepository.findByUsernameAndCurrency(USER_SELLING_EUR, Currency.RUB);
-        assertThat(userSellingEurActiveRub.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(50));
-        Active userBuyingEurActiveEur = activeRepository.findByUsernameAndCurrency(USER_BUYING_EUR, Currency.EUR);
-        assertThat(userBuyingEurActiveEur.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(0.5));
-        Active userBuyingEurActiveRub = activeRepository.findByUsernameAndCurrency(USER_BUYING_EUR, Currency.RUB);
-        assertThat(userBuyingEurActiveRub.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(50));
+        Active userSellingEurActiveRub = activeRepository.findByUsernameAndCurrency(USER_SELLING_EUR, RUB);
+        assertThat(userSellingEurActiveRub.getMonetaryAmount()).isEqualTo(Money.of(BigDecimal.valueOf(50), RUB));
+        Active userBuyingEurActiveEur = activeRepository.findByUsernameAndCurrency(USER_BUYING_EUR, EUR);
+        assertThat(userBuyingEurActiveEur.getMonetaryAmount()).isEqualTo(Money.of(BigDecimal.valueOf(0.5), EUR));
+        Active userBuyingEurActiveRub = activeRepository.findByUsernameAndCurrency(USER_BUYING_EUR, RUB);
+        assertThat(userBuyingEurActiveRub.getMonetaryAmount()).isEqualTo(Money.of(BigDecimal.valueOf(50), RUB));
 
         Order orderSellingEur = orderRepository.findByCompletedAndCurrencyToSellAndCurrencyToBuyOrderByRateDesc(false, EUR, RUB).get(0);
         assertThat(orderSellingEur)
                 .satisfies(o -> {
                     assertThat(o.getCreator()).isEqualTo(USER_SELLING_EUR);
-                    assertThat(o.getCurrencyToSell()).isEqualTo(Currency.EUR);
-                    assertThat(o.getCurrencyToBuy()).isEqualTo(Currency.RUB);
+                    assertThat(o.getCurrencyToSell()).isEqualTo(EUR);
+                    assertThat(o.getCurrencyToBuy()).isEqualTo(RUB);
                     assertThat(o.getTotalAmountToSell()).isEqualTo(Money.of(BigDecimal.valueOf(1), EUR));
                     assertThat(o.getCompletedAmountToSell()).isEqualTo(Money.of(BigDecimal.valueOf(0.5), EUR));
                     assertThat(o.isCompleted()).isFalse();
@@ -195,8 +190,8 @@ public class OrderServiceTest {
         assertThat(orderBuyingEur)
                 .satisfies(o -> {
                     assertThat(o.getCreator()).isEqualTo(USER_BUYING_EUR);
-                    assertThat(o.getCurrencyToSell()).isEqualTo(Currency.RUB);
-                    assertThat(o.getCurrencyToBuy()).isEqualTo(Currency.EUR);
+                    assertThat(o.getCurrencyToSell()).isEqualTo(RUB);
+                    assertThat(o.getCurrencyToBuy()).isEqualTo(EUR);
                     assertThat(o.getTotalAmountToSell()).isEqualTo(Money.of(BigDecimal.valueOf(50), RUB));
                     assertThat(o.getCompletedAmountToSell()).isEqualTo(Money.of(BigDecimal.valueOf(50), RUB));
                     assertThat(o.isCompleted()).isTrue();
@@ -209,33 +204,33 @@ public class OrderServiceTest {
 
     @Test
     void completeOneLimitOrderBySecondBigger() {
-        setActiveBalance(USER_SELLING_EUR, Currency.EUR, BigDecimal.valueOf(1));
-        setActiveBalance(USER_BUYING_EUR, Currency.RUB, BigDecimal.valueOf(100));
+        setActiveBalance(USER_SELLING_EUR, EUR, BigDecimal.valueOf(1));
+        setActiveBalance(USER_BUYING_EUR, RUB, BigDecimal.valueOf(100));
 
         authenticateUser(USER_SELLING_EUR);
         // userSellingEur sells 0.5 EUR
-        orderService.processOrder(Currency.EUR, Currency.RUB, OrderType.LIMIT, BigDecimal.valueOf(0.5), BigDecimal.valueOf(0.01));
-        Active userSellingEurActiveEur = activeRepository.findByUsernameAndCurrency(USER_SELLING_EUR, Currency.EUR);
-        assertThat(userSellingEurActiveEur.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(0.5));
+        orderService.processOrder(EUR, RUB, OrderType.LIMIT, BigDecimal.valueOf(0.5), BigDecimal.valueOf(0.01));
+        Active userSellingEurActiveEur = activeRepository.findByUsernameAndCurrency(USER_SELLING_EUR, EUR);
+        assertThat(userSellingEurActiveEur.getMonetaryAmount()).isEqualTo(Money.of(BigDecimal.valueOf(0.5), EUR));
 
         authenticateUser(USER_BUYING_EUR);
         // userBuyingEur sells 100 RUB
-        orderService.processOrder(Currency.RUB, Currency.EUR, OrderType.LIMIT, BigDecimal.valueOf(100), BigDecimal.valueOf(100));
+        orderService.processOrder(RUB, EUR, OrderType.LIMIT, BigDecimal.valueOf(100), BigDecimal.valueOf(100));
 
         // checks
-        Active userSellingEurActiveRub = activeRepository.findByUsernameAndCurrency(USER_SELLING_EUR, Currency.RUB);
-        assertThat(userSellingEurActiveRub.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(50));
-        Active userBuyingEurActiveEur = activeRepository.findByUsernameAndCurrency(USER_BUYING_EUR, Currency.EUR);
-        assertThat(userBuyingEurActiveEur.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(0.5));
-        Active userBuyingEurActiveRub = activeRepository.findByUsernameAndCurrency(USER_BUYING_EUR, Currency.RUB);
-        assertThat(userBuyingEurActiveRub.getAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+        Active userSellingEurActiveRub = activeRepository.findByUsernameAndCurrency(USER_SELLING_EUR, RUB);
+        assertThat(userSellingEurActiveRub.getMonetaryAmount()).isEqualTo(Money.of(BigDecimal.valueOf(50), RUB));
+        Active userBuyingEurActiveEur = activeRepository.findByUsernameAndCurrency(USER_BUYING_EUR, EUR);
+        assertThat(userBuyingEurActiveEur.getMonetaryAmount()).isEqualTo(Money.of(BigDecimal.valueOf(0.5), EUR));
+        Active userBuyingEurActiveRub = activeRepository.findByUsernameAndCurrency(USER_BUYING_EUR, RUB);
+        assertThat(userBuyingEurActiveRub.getMonetaryAmount()).isEqualTo(Money.zero(RUB));
 
         Order orderSellingEur = orderRepository.findByCompletedAndCurrencyToSellAndCurrencyToBuyOrderByRateDesc(true, EUR, RUB).get(0);
         assertThat(orderSellingEur)
                 .satisfies(o -> {
                     assertThat(o.getCreator()).isEqualTo(USER_SELLING_EUR);
-                    assertThat(o.getCurrencyToSell()).isEqualTo(Currency.EUR);
-                    assertThat(o.getCurrencyToBuy()).isEqualTo(Currency.RUB);
+                    assertThat(o.getCurrencyToSell()).isEqualTo(EUR);
+                    assertThat(o.getCurrencyToBuy()).isEqualTo(RUB);
                     assertThat(o.getTotalAmountToSell()).isEqualTo(Money.of(BigDecimal.valueOf(0.5), EUR));
                     assertThat(o.getCompletedAmountToSell()).isEqualTo(Money.of(BigDecimal.valueOf(0.5), EUR));
                     assertThat(o.isCompleted()).isTrue();
@@ -249,8 +244,8 @@ public class OrderServiceTest {
         assertThat(orderBuyingEur)
                 .satisfies(o -> {
                     assertThat(o.getCreator()).isEqualTo(USER_BUYING_EUR);
-                    assertThat(o.getCurrencyToSell()).isEqualTo(Currency.RUB);
-                    assertThat(o.getCurrencyToBuy()).isEqualTo(Currency.EUR);
+                    assertThat(o.getCurrencyToSell()).isEqualTo(RUB);
+                    assertThat(o.getCurrencyToBuy()).isEqualTo(EUR);
                     assertThat(o.getTotalAmountToSell()).isEqualTo(Money.of(BigDecimal.valueOf(100), RUB));
                     assertThat(o.getCompletedAmountToSell()).isEqualTo(Money.of(BigDecimal.valueOf(50), RUB));
                     assertThat(o.isCompleted()).isFalse();
@@ -266,9 +261,9 @@ public class OrderServiceTest {
                 new UsernamePasswordAuthenticationToken(username, PASSWORD, List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
     }
 
-    private void setActiveBalance(String username, Currency currency, BigDecimal amount) {
+    private void setActiveBalance(String username, CurrencyUnit currency, BigDecimal amount) {
         Active active = activeRepository.findByUsernameAndCurrency(username, currency);
-        active.setAmount(amount);
+        active.setMonetaryAmount(Money.of(amount, active.getCurrency()));
         activeRepository.save(active);
     }
 }

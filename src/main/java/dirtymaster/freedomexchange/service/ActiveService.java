@@ -1,13 +1,15 @@
 package dirtymaster.freedomexchange.service;
 
+import dirtymaster.freedomexchange.constant.CurrencyUnitConstants;
 import dirtymaster.freedomexchange.entity.Active;
-import dirtymaster.freedomexchange.entity.Currency;
 import dirtymaster.freedomexchange.repository.ActiveRepository;
+import org.javamoney.moneta.Money;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
+import javax.money.CurrencyUnit;
+import javax.money.MonetaryAmount;
 import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -20,15 +22,15 @@ public class ActiveService {
         this.authService = authService;
     }
 
-    public BigDecimal getActiveAmountByCurrency(Currency currency) {
+    public BigDecimal getActiveAmountByCurrency(CurrencyUnit currency) {
         String username = authService.getUsernameOrNull();
         if (username != null) {
-            return activeRepository.findByUsernameAndCurrency(username, currency).getAmount();
+            return ((Money) activeRepository.findByUsernameAndCurrency(username, currency).getMonetaryAmount()).getNumberStripped();
         }
         return BigDecimal.ZERO;
     }
 
-    public Active findByUsernameAndCurrency(String username, Currency currency) {
+    public Active findByUsernameAndCurrency(String username, CurrencyUnit currency) {
         return activeRepository.findByUsernameAndCurrency(username, currency);
     }
 
@@ -36,33 +38,33 @@ public class ActiveService {
         if (activeRepository.existsByUsername(username)) {
             throw new IllegalStateException("User already has actives");
         }
-        List<Active> activesToSave = Arrays.stream(Currency.values())
+        List<Active> activesToSave = CurrencyUnitConstants.availableCurrencies.stream()
                 .map(currency ->
                         Active.builder()
                                 .username(username)
                                 .currency(currency)
-                                .amount(BigDecimal.ZERO)
-                                .blockedAmount(BigDecimal.ZERO)
+                                .monetaryAmount(Money.zero(currency))
+                                .blockedMonetaryAmount(BigDecimal.ZERO)
                                 .build())
                 .toList();
         activeRepository.saveAll(activesToSave);
     }
 
-    public void changeActive(Currency currency, BigDecimal amount) {
+    public void changeActive(CurrencyUnit currency, Money amount) {
         changeActive(currency, amount, null);
     }
 
-    public void changeActive(Currency currency, BigDecimal amount, BigDecimal blockedAmount) {
+    public void changeActive(CurrencyUnit currency, Money amount, Money blockedAmount) {
         String username = authService.getUsernameOrNull();
         Active active = activeRepository.findByUsernameAndCurrency(username, currency);
-        active.setAmount(amount);
+        active.setMonetaryAmount(amount);
         if (blockedAmount != null) {
-            active.setBlockedAmount(blockedAmount);
+            active.setBlockedMonetaryAmount(blockedAmount);
         }
         activeRepository.save(active);
     }
 
-    public Active findByCurrency(Currency currency) {
+    public Active findByCurrency(CurrencyUnit currency) {
         String username = authService.getUsernameOrNull();
         return activeRepository.findByUsernameAndCurrency(username, currency);
     }

@@ -1,8 +1,10 @@
 package dirtymaster.freedomexchange.entity;
 
+import io.hypersistence.utils.hibernate.type.money.CurrencyUnitType;
+import io.hypersistence.utils.hibernate.type.money.MonetaryAmountType;
+import jakarta.persistence.AttributeOverride;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -10,7 +12,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CompositeType;
+import org.hibernate.annotations.Type;
+import org.javamoney.moneta.Money;
 
+import javax.money.CurrencyUnit;
+import javax.money.MonetaryAmount;
 import java.math.BigDecimal;
 import java.util.UUID;
 
@@ -27,18 +34,46 @@ public class Active {
 
     private String username;
 
-    @Enumerated(EnumType.STRING)
-    private Currency currency;
+    @Column(name = "currency")
+    @Type(CurrencyUnitType.class)
+    private CurrencyUnit currency;
 
-    private BigDecimal amount;
+    @AttributeOverride(
+            name = "amount",
+            column = @Column(name = "amount")
+    )
+    @AttributeOverride(
+            name = "currency",
+            column = @Column(name = "currency", insertable = false, updatable = false)
+    )
+    @CompositeType(MonetaryAmountType.class)
+    private MonetaryAmount monetaryAmount;
 
-    private BigDecimal blockedAmount;
+//    @AttributeOverride(
+//            name = "blocked_amount",
+//            column = @Column(name = "amount")
+//    )
+//    @AttributeOverride(
+//            name = "currency",
+//            column = @Column(name = "currency", insertable = false, updatable = false)
+//    )
+//    @CompositeType(MonetaryAmountType.class)
+    @Column(name = "blocked_amount")
+    private BigDecimal blockedMonetaryAmount;
+
+    public MonetaryAmount getBlockedMonetaryAmount() {
+        return Money.of(blockedMonetaryAmount, this.currency);
+    }
+
+    public void setBlockedMonetaryAmount(MonetaryAmount blockedMonetaryAmount) {
+        this.blockedMonetaryAmount = ((Money)blockedMonetaryAmount).getNumberStripped();
+    }
 
     public void subtractAmount(BigDecimal amount) {
-        this.amount = this.amount.subtract(amount);
+        this.monetaryAmount = this.monetaryAmount.subtract(Money.of(amount, this.currency));
     }
 
     public void addAmount(BigDecimal amount) {
-        this.amount = this.amount.add(amount);
+        this.monetaryAmount = this.monetaryAmount.add(Money.of(amount, this.currency));
     }
 }

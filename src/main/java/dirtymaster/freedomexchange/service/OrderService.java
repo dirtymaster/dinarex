@@ -5,15 +5,15 @@ import dirtymaster.freedomexchange.dto.OrderType;
 import dirtymaster.freedomexchange.dto.SortingType;
 import dirtymaster.freedomexchange.dto.SummedOrder;
 import dirtymaster.freedomexchange.entity.Active;
-import dirtymaster.freedomexchange.entity.Currency;
 import dirtymaster.freedomexchange.entity.Order;
 import dirtymaster.freedomexchange.exception.LowLiquidityException;
 import dirtymaster.freedomexchange.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
+import org.javamoney.moneta.Money;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.money.Monetary;
+import javax.money.CurrencyUnit;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
@@ -31,7 +31,7 @@ public class OrderService {
     private final ActiveService activeService;
     private final OrdersConfig ordersConfig;
 
-    public Map<String, Object> getOrders(Currency currencyToSell, Currency currencyToBuy) {
+    public Map<String, Object> getOrders(CurrencyUnit currencyToSell, CurrencyUnit currencyToBuy) {
         List<SummedOrder> sellOrders = get50Orders(currencyToSell, currencyToBuy, SortingType.ASC);
         List<SummedOrder> buyOrders = get50Orders(currencyToBuy, currencyToSell, SortingType.ASC);
         boolean ratesNormalized = normalizeRates(sellOrders);
@@ -47,9 +47,9 @@ public class OrderService {
         return responseMap;
     }
 
-    public BigDecimal getRate(Currency currencyToSell, Currency currencyToBuy) {
-        Currency first;
-        Currency second;
+    public BigDecimal getRate(CurrencyUnit currencyToSell, CurrencyUnit currencyToBuy) {
+        CurrencyUnit first;
+        CurrencyUnit second;
         if (currencyToSell.compareTo(currencyToBuy) < 0) {
             first = currencyToSell;
             second = currencyToBuy;
@@ -57,40 +57,40 @@ public class OrderService {
             first = currencyToBuy;
             second = currencyToSell;
         }
-        return orderRepository.findTopRateByCurrencyToSellAndCurrencyToBuy(Monetary.getCurrency(first.name()), Monetary.getCurrency(second.name())).getRate();
+        return orderRepository.findTopRateByCurrencyToSellAndCurrencyToBuy(first, second).getRate();
     }
 
-    private List<SummedOrder> get50Orders(Currency currencyToSell, Currency currencyToBuy, SortingType sortingType) {
+    private List<SummedOrder> get50Orders(CurrencyUnit currencyToSell, CurrencyUnit currencyToBuy, SortingType sortingType) {
         List<SummedOrder> summedOrders;
         if (sortingType == SortingType.ASC) {
             summedOrders = orderRepository.findTop50SummedByCurrencyToSellAndCurrencyToBuyOrderByRateAsc(
-                    currencyToSell.name(), currencyToBuy.name(), 50);
+                    currencyToSell.getCurrencyCode(), currencyToBuy.getCurrencyCode(), 50);
         } else {
             summedOrders = orderRepository.findTop50SummedByCurrencyToSellAndCurrencyToBuyOrderByRateDesc(
-                    currencyToSell.name(), currencyToBuy.name(), 50);
+                    currencyToSell.getCurrencyCode(), currencyToBuy.getCurrencyCode(), 50);
         }
         return summedOrders;
     }
 
     @Transactional
-    public Order processOrder(Currency currencyCurrentUserSelling, Currency currencyCurrentUserBuying, OrderType orderType,
-                            BigDecimal amountCurrentUserSelling, BigDecimal rate) {
+    public Order processOrder(CurrencyUnit currencyCurrentUserSelling, CurrencyUnit currencyCurrentUserBuying,
+                              OrderType orderType, BigDecimal amountCurrentUserSelling, BigDecimal rate) {
         boolean isMarket = orderType == OrderType.MARKET;
         if (!isMarket && rate == null) {
             throw new IllegalArgumentException("Rate is required for limit order");
         }
 
         Order newOrder = createOrder(currencyCurrentUserSelling, currencyCurrentUserBuying, orderType, amountCurrentUserSelling, rate);
-        if (newOrder.getActiveToSell().getAmount().compareTo(amountCurrentUserSelling) < 0) {
+        if (newOrder.getActiveToSell().getMonetaryAmount().isLessThan(Money.of(amountCurrentUserSelling, currencyCurrentUserSelling))) {
             throw new IllegalArgumentException("Not enough funds");
         }
 
         BigDecimal invertedRate = invertValue(rate);
         List<Order> orders = isMarket ?
                 orderRepository.findByCompletedAndCurrencyToSellAndCurrencyToBuyOrderByRateDesc(
-                        false, Monetary.getCurrency(currencyCurrentUserBuying.name()), Monetary.getCurrency(currencyCurrentUserSelling.name()))
+                        false, currencyCurrentUserBuying, currencyCurrentUserSelling)
                 : orderRepository.findByCompletedAndCurrencyToSellAndCurrencyToBuyAndRateGreaterThanEqualOrderByRateDesc(
-                        false, Monetary.getCurrency(currencyCurrentUserBuying.name()), Monetary.getCurrency(currencyCurrentUserSelling.name()), invertedRate);
+                        false, currencyCurrentUserBuying, currencyCurrentUserSelling, invertedRate);
         if (!orders.isEmpty()) {
             // Сумма в существующих ордерах в валюте, которую продает текущий пользователь.
             BigDecimal summedAmountInCurrencyCurrentUserSelling = BigDecimal.ZERO;
@@ -161,7 +161,7 @@ public class OrderService {
         return orderRepository.save(newOrder);
     }
 
-    public Order createOrder(Currency currencyToSell, Currency currencyToBuy, OrderType orderType,
+    public Order createOrder(CurrencyUnit currencyToSell, CurrencyUnit currencyToBuy, OrderType orderType,
                              BigDecimal totalAmountToBuy, BigDecimal rate) {
         String username = authService.getUsernameOrNull();
         if (username == null) {

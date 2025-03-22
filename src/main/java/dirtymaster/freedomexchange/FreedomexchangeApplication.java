@@ -1,7 +1,5 @@
 package dirtymaster.freedomexchange;
 
-import dirtymaster.freedomexchange.dto.OrderType;
-import dirtymaster.freedomexchange.entity.Currency;
 import dirtymaster.freedomexchange.entity.Order;
 import dirtymaster.freedomexchange.repository.OrderRepository;
 import dirtymaster.freedomexchange.repository.UserRepository;
@@ -12,10 +10,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Random;
+
+import static dirtymaster.freedomexchange.constant.CurrencyUnitConstants.EUR;
+import static dirtymaster.freedomexchange.constant.CurrencyUnitConstants.RSD;
+import static dirtymaster.freedomexchange.constant.CurrencyUnitConstants.RUB;
 
 @SpringBootApplication
 @EnableConfigurationProperties
@@ -40,9 +45,12 @@ public class FreedomexchangeApplication {
 //    public void init() {
 //        if (!authService.userExists("admin@gmail.com")) {
 //            authService.registerUser("admin@gmail.com", "admin");
-//            activeService.changeActive("admin@gmail.com", Currency.RUB, new BigDecimal(10000), BigDecimal.ZERO);
-//            activeService.changeActive("admin@gmail.com", Currency.RSD, new BigDecimal(1000), BigDecimal.ZERO);
-//            activeService.changeActive("admin@gmail.com", Currency.EUR, new BigDecimal(100), BigDecimal.ZERO);
+//            SecurityContextHolder.getContext().setAuthentication(
+//                    new UsernamePasswordAuthenticationToken("admin@gmail.com", "admin",
+//                            List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
+//            activeService.changeActive(RUB, new BigDecimal(10000), BigDecimal.ZERO);
+//            activeService.changeActive(RSD, new BigDecimal(1000), BigDecimal.ZERO);
+//            activeService.changeActive(EUR, new BigDecimal(100), BigDecimal.ZERO);
 //        }
 //
 //        orderRepository.deleteAll();
