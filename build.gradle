@@ -35,6 +35,11 @@ dependencies {
     implementation 'commons-validator:commons-validator:1.9.0'
     // https://mvnrepository.com/artifact/org.liquibase/liquibase-core
     implementation 'org.liquibase:liquibase-core:4.31.0'
+    // https://mvnrepository.com/artifact/org.javamoney/moneta
+    implementation 'org.javamoney:moneta:1.4.4'
+    // https://mvnrepository.com/artifact/io.hypersistence/hypersistence-utils-hibernate-60
+    implementation 'io.hypersistence:hypersistence-utils-hibernate-60:3.9.4'
+
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
