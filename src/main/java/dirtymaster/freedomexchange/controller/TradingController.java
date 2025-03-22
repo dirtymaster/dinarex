@@ -35,9 +35,8 @@ public class TradingController {
     public String tradingPage(@PathVariable CurrencyUnit currencyToSell, @PathVariable CurrencyUnit currencyToBuy,
                               @RequestParam(defaultValue = "MARKET") OrderType orderType,
                               Model model) {
+        List<CurrencyUnit> availableCurrencies = CurrencyUnitConstants.availableCurrencies;
         if (currencyToSell == currencyToBuy) {
-//            Currency[] values = Currency.values();
-            List<CurrencyUnit> availableCurrencies = CurrencyUnitConstants.availableCurrencies;
             currencyToBuy = currencyToSell.getCurrencyCode().equals(availableCurrencies.get(0).getCurrencyCode())
                     ? availableCurrencies.get(1) : availableCurrencies.get(0);
             return "redirect:/trading/%s/%s".formatted(currencyToSell, currencyToBuy);
@@ -46,9 +45,12 @@ public class TradingController {
         BigDecimal orderCommission = orderType == OrderType.MARKET ?
                 ordersConfig.getMarketOrderCommission() : ordersConfig.getLimitOrderCommission();
         model.addAttribute("orderCommission", orderCommission);
-        model.addAttribute("currenciesToSell", CurrencyUnitConstants.availableCurrencies);
-        model.addAttribute("activeCurrencyToSell", currencyToSell);
-        model.addAttribute("activeCurrencyToBuy", currencyToBuy);
+        List<String> currencyNames = availableCurrencies.stream()
+                .map(CurrencyUnit::getCurrencyCode)
+                .toList();
+        model.addAttribute("currenciesToSell", currencyNames);
+        model.addAttribute("activeCurrencyToSell", currencyToSell.getCurrencyCode());
+        model.addAttribute("activeCurrencyToBuy", currencyToBuy.getCurrencyCode());
         model.addAttribute("currenciesToBuy",
                 CurrencyUnitConstants.availableCurrencies.stream()
                         .filter(c -> !c.equals(currencyToSell))

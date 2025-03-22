@@ -127,13 +127,10 @@ $(document).ready(function() {
         $('#amountToSell').val(parseFloat($('#you-give-away').val()));
         $('#orderType').val(window.tradingData.orderType);
 
-        if (window.tradingData.orderType !== 'LIMIT') {
+        if (window.tradingData.orderType === 'LIMIT') {
             $('#rate').val(parseFloat($('#buy-rate').val()));
         }
 
-        //$('#buy-rate'
-        console.log("$(\'#buy-rate\'" + $('#buy-rate'))
-        console.log("$('#you-give-away')" + $('#you-give-away'))
         $('#exchangeForm').submit();
     });
 

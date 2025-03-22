@@ -1,18 +1,24 @@
 package dirtymaster.freedomexchange;
 
+import dirtymaster.freedomexchange.dto.OrderType;
 import dirtymaster.freedomexchange.entity.Order;
 import dirtymaster.freedomexchange.repository.OrderRepository;
 import dirtymaster.freedomexchange.repository.UserRepository;
 import dirtymaster.freedomexchange.service.ActiveService;
 import dirtymaster.freedomexchange.service.AuthService;
+import dirtymaster.freedomexchange.service.OrderService;
 import jakarta.annotation.PostConstruct;
+import org.javamoney.moneta.Money;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -38,24 +44,35 @@ public class FreedomexchangeApplication {
     private UserRepository userRepository;
     @Autowired
     private ActiveService activeService;
+    @Autowired
+    private OrderService orderService;
 
 
-//    private final Random random = new Random();
-//    @PostConstruct
-//    public void init() {
-//        if (!authService.userExists("admin@gmail.com")) {
-//            authService.registerUser("admin@gmail.com", "admin");
-//            SecurityContextHolder.getContext().setAuthentication(
-//                    new UsernamePasswordAuthenticationToken("admin@gmail.com", "admin",
-//                            List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
-//            activeService.changeActive(RUB, new BigDecimal(10000), BigDecimal.ZERO);
-//            activeService.changeActive(RSD, new BigDecimal(1000), BigDecimal.ZERO);
-//            activeService.changeActive(EUR, new BigDecimal(100), BigDecimal.ZERO);
-//        }
-//
-//        orderRepository.deleteAll();
-//        for (int i = 0; i < 100; ++i) {
-//            for (int j = 0; j < random.nextInt(10); ++j) {
+    private final Random random = new Random();
+    @PostConstruct
+    public void init() {
+        if (!authService.userExists("admin@gmail.com")) {
+            authService.registerUser("admin@gmail.com", "admin");
+            activeService.changeActive(Money.of(new BigDecimal(10000), RUB));
+            activeService.changeActive(Money.of(new BigDecimal(1000), RSD));
+            activeService.changeActive(Money.of(new BigDecimal(100), EUR));
+        }
+        UserDetails user = new User(
+                "admin@gmail.com",
+                "admin",  // пароль можно закодировать через PasswordEncoder
+                List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
+        );
+
+        UsernamePasswordAuthenticationToken auth =
+                new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(auth);
+        SecurityContextHolder.setContext(context);
+
+        orderRepository.deleteAll();
+        for (int i = 0; i < 100; ++i) {
+            for (int j = 0; j < random.nextInt(10); ++j) {
 //                Order order = new Order();
 //                order.setCreator("admin@gmail.com");
 //                order.setCurrencyToSell(Currency.RSD);
@@ -65,12 +82,13 @@ public class FreedomexchangeApplication {
 //                order.setOrderType(OrderType.LIMIT);
 //                order.setRate(new BigDecimal(1.25 + i * 0.0001));
 //                order.setCreatedAt(LocalDateTime.now());
-//                orderRepository.save(order);
-//            }
-//        }
-//
-//        for (int i = 0; i < 100; ++i) {
-//            for (int j = 0; j < random.nextInt(10); ++j) {
+                Order order = orderService.createOrder(RSD, RUB, OrderType.LIMIT, new BigDecimal(random.nextInt(1000)), new BigDecimal(1.25 + i * 0.0001));
+                orderRepository.save(order);
+            }
+        }
+
+        for (int i = 0; i < 100; ++i) {
+            for (int j = 0; j < random.nextInt(10); ++j) {
 //                Order order = new Order();
 //                order.setCreator("admin@gmail.com");
 //                order.setCurrencyToSell(Currency.RUB);
@@ -80,12 +98,13 @@ public class FreedomexchangeApplication {
 //                order.setOrderType(OrderType.LIMIT);
 //                order.setRate(new BigDecimal(0.86 - i * 0.0001));
 //                order.setCreatedAt(LocalDateTime.now());
-//                orderRepository.save(order);
-//            }
-//        }
-//
-//        for (int i = 0; i < 100; ++i) {
-//            for (int j = 0; j < random.nextInt(10); ++j) {
+                Order order = orderService.createOrder(RUB, RSD, OrderType.LIMIT, new BigDecimal(random.nextInt(1000)), new BigDecimal(0.86 - i * 0.0001));
+                orderRepository.save(order);
+            }
+        }
+
+        for (int i = 0; i < 100; ++i) {
+            for (int j = 0; j < random.nextInt(10); ++j) {
 //                Order order = new Order();
 //                order.setCreator("admin@gmail.com");
 //                order.setCurrencyToSell(Currency.EUR);
@@ -95,12 +114,13 @@ public class FreedomexchangeApplication {
 //                order.setOrderType(OrderType.LIMIT);
 //                order.setRate(new BigDecimal(0.01 + i * 0.000001));
 //                order.setCreatedAt(LocalDateTime.now());
-//                orderRepository.save(order);
-//            }
-//        }
-//
-//        for (int i = 0; i < 100; ++i) {
-//            for (int j = 0; j < random.nextInt(10); ++j) {
+                Order order = orderService.createOrder(EUR, RUB, OrderType.LIMIT, new BigDecimal(random.nextInt(1000)), new BigDecimal(0.01 + i * 0.000001));
+                orderRepository.save(order);
+            }
+        }
+
+        for (int i = 0; i < 100; ++i) {
+            for (int j = 0; j < random.nextInt(10); ++j) {
 //                Order order = new Order();
 //                order.setCreator("admin@gmail.com");
 //                order.setCurrencyToSell(Currency.RUB);
@@ -110,8 +130,9 @@ public class FreedomexchangeApplication {
 //                order.setOrderType(OrderType.LIMIT);
 //                order.setRate(new BigDecimal(90 - i * 0.01));
 //                order.setCreatedAt(LocalDateTime.now());
-//                orderRepository.save(order);
-//            }
-//        }
-//    }
+                Order order = orderService.createOrder(RUB, EUR, OrderType.LIMIT, new BigDecimal(random.nextInt(1000)), new BigDecimal(90 - i * 0.01));
+                orderRepository.save(order);
+            }
+        }
+    }
 }

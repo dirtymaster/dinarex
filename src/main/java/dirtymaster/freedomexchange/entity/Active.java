@@ -49,26 +49,6 @@ public class Active {
     @CompositeType(MonetaryAmountType.class)
     private MonetaryAmount monetaryAmount;
 
-//    @AttributeOverride(
-//            name = "blocked_amount",
-//            column = @Column(name = "amount")
-//    )
-//    @AttributeOverride(
-//            name = "currency",
-//            column = @Column(name = "currency", insertable = false, updatable = false)
-//    )
-//    @CompositeType(MonetaryAmountType.class)
-    @Column(name = "blocked_amount")
-    private BigDecimal blockedMonetaryAmount;
-
-    public MonetaryAmount getBlockedMonetaryAmount() {
-        return Money.of(blockedMonetaryAmount, this.currency);
-    }
-
-    public void setBlockedMonetaryAmount(MonetaryAmount blockedMonetaryAmount) {
-        this.blockedMonetaryAmount = ((Money)blockedMonetaryAmount).getNumberStripped();
-    }
-
     public void subtractAmount(BigDecimal amount) {
         this.monetaryAmount = this.monetaryAmount.subtract(Money.of(amount, this.currency));
     }

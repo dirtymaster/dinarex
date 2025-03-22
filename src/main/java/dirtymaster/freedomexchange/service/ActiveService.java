@@ -8,7 +8,6 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import javax.money.CurrencyUnit;
-import javax.money.MonetaryAmount;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -44,23 +43,15 @@ public class ActiveService {
                                 .username(username)
                                 .currency(currency)
                                 .monetaryAmount(Money.zero(currency))
-                                .blockedMonetaryAmount(BigDecimal.ZERO)
                                 .build())
                 .toList();
         activeRepository.saveAll(activesToSave);
     }
 
-    public void changeActive(CurrencyUnit currency, Money amount) {
-        changeActive(currency, amount, null);
-    }
-
-    public void changeActive(CurrencyUnit currency, Money amount, Money blockedAmount) {
+    public void changeActive(Money amount) {
         String username = authService.getUsernameOrNull();
-        Active active = activeRepository.findByUsernameAndCurrency(username, currency);
+        Active active = activeRepository.findByUsernameAndCurrency(username, amount.getCurrency());
         active.setMonetaryAmount(amount);
-        if (blockedAmount != null) {
-            active.setBlockedMonetaryAmount(blockedAmount);
-        }
         activeRepository.save(active);
     }
 
