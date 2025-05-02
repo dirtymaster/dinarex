@@ -73,7 +73,7 @@
                 <div class="form-group">
                     <label for="buy-rate">Курс</label>
                     <div class="input-group">
-                        <input type="text" id="buy-rate" th:value="${orderType} == 'MARKET' ? ${sellOrders[0].rate} : ''">
+                        <input type="text" id="buy-rate">
                         <span class="currency-label" th:text="${currencyToSell}"></span>
                     </div>
                 </div>
@@ -118,12 +118,12 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <th:block th:each="sellOrder : ${sellOrders}">
-                        <tr>
-                            <td th:text="${sellOrder.rate}"></td>
-                            <td th:text="${sellOrder.summedAmount}"></td>
-                        </tr>
-                    </th:block>
+<!--                    <th:block th:each="sellOrder : ${sellOrders}">-->
+<!--                        <tr>-->
+<!--                            <td th:text="${sellOrder.rate}"></td>-->
+<!--                            <td th:text="${sellOrder.summedAmount}"></td>-->
+<!--                        </tr>-->
+<!--                    </th:block>-->
                 </tbody>
             </table>
         </div>
@@ -139,12 +139,12 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <th:block th:each="buyOrder : ${buyOrders}">
-                        <tr>
-                            <td th:text="${buyOrder.rate}"></td>
-                            <td th:text="${buyOrder.summedAmount}"></td>
-                        </tr>
-                    </th:block>
+<!--                    <th:block th:each="buyOrder : ${buyOrders}">-->
+<!--                        <tr>-->
+<!--                            <td th:text="${buyOrder.rate}"></td>-->
+<!--                            <td th:text="${buyOrder.summedAmount}"></td>-->
+<!--                        </tr>-->
+<!--                    </th:block>-->
                 </tbody>
             </table>
         </div>

@@ -21,6 +21,7 @@ public class SecurityConfiguration {
         http.authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/auth/**", "/css/**", "/js/**", "/images/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/trading/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/order/**").permitAll()
                         //TODO сделать авторизацию для запроса создания ордера
                         .anyRequest().authenticated()
                 )

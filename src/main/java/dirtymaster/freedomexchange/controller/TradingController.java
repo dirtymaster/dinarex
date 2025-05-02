@@ -62,9 +62,6 @@ public class TradingController {
         BigDecimal currencyToBuyBalance = activeService.getActiveAmountByCurrency(currencyToBuy);
         model.addAttribute("currencyToBuyBalance", currencyToBuyBalance);
 
-        orderService.getOrders(currencyToSell, currencyToBuy)
-                .forEach(model::addAttribute);
-
         return "trading";
     }
 

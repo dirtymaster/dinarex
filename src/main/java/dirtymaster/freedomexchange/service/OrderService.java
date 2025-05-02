@@ -47,17 +47,14 @@ public class OrderService {
         return responseMap;
     }
 
-    public BigDecimal getRate(CurrencyUnit currencyToSell, CurrencyUnit currencyToBuy) {
-        CurrencyUnit first;
-        CurrencyUnit second;
-        if (currencyToSell.compareTo(currencyToBuy) < 0) {
-            first = currencyToSell;
-            second = currencyToBuy;
-        } else {
-            first = currencyToBuy;
-            second = currencyToSell;
-        }
-        return orderRepository.findTopRateByCurrencyToSellAndCurrencyToBuy(first, second).getRate();
+    public BigDecimal findTopRateByCurrencyToSellAndCurrencyToBuy(CurrencyUnit currencyToSell, CurrencyUnit currencyToBuy) {
+        BigDecimal rate = orderRepository.findTopRateByCurrencyToSellAndCurrencyToBuy(currencyToSell, currencyToBuy).getRate();
+        return rate.compareTo(BigDecimal.ONE) < 0 ? invertValue(rate) : rate;
+    }
+
+    public BigDecimal findFirstByCurrencyToSellAndCurrencyToBuyOrderByRateAsc(CurrencyUnit currencyToSell, CurrencyUnit currencyToBuy) {
+        BigDecimal rate = orderRepository.findFirstByCurrencyToSellAndCurrencyToBuyOrderByRateAsc(currencyToSell, currencyToBuy).getRate();
+        return rate.compareTo(BigDecimal.ONE) < 0 ? invertValue(rate) : rate;
     }
 
     private List<SummedOrder> get50Orders(CurrencyUnit currencyToSell, CurrencyUnit currencyToBuy, SortingType sortingType) {

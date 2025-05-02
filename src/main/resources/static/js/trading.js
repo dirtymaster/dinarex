@@ -110,6 +110,7 @@ $(document).ready(function() {
         updateCalculations($(this).attr('id'))
     });
 
+    updateOrders();
     setInterval(updateOrders, 2000);
 
     $(".buy-section .max-btn").click(function() {

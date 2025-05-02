@@ -13,6 +13,7 @@ import java.util.UUID;
 
 public interface OrderRepository extends JpaRepository<Order, UUID> {
     Order findTopRateByCurrencyToSellAndCurrencyToBuy(CurrencyUnit currencyToSell, CurrencyUnit currencyToBuy);
+    Order findFirstByCurrencyToSellAndCurrencyToBuyOrderByRateAsc(CurrencyUnit currencyToSell, CurrencyUnit currencyToBuy);
 
     @Query(value = """
             SELECT o.rate, SUM(o.total_amount_to_sell - o.completed_amount_to_sell) 

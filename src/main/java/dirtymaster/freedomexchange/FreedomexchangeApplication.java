@@ -2,6 +2,7 @@ package dirtymaster.freedomexchange;
 
 import dirtymaster.freedomexchange.dto.OrderType;
 import dirtymaster.freedomexchange.entity.Order;
+import dirtymaster.freedomexchange.repository.ActiveRepository;
 import dirtymaster.freedomexchange.repository.OrderRepository;
 import dirtymaster.freedomexchange.repository.UserRepository;
 import dirtymaster.freedomexchange.service.ActiveService;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
@@ -46,17 +48,17 @@ public class FreedomexchangeApplication {
     private ActiveService activeService;
     @Autowired
     private OrderService orderService;
-
+    @Autowired
+    private ActiveRepository activeRepository;
 
     private final Random random = new Random();
+
     @PostConstruct
     public void init() {
-        if (!authService.userExists("admin@gmail.com")) {
-            authService.registerUser("admin@gmail.com", "admin");
-            activeService.changeActive(Money.of(new BigDecimal(10000), RUB));
-            activeService.changeActive(Money.of(new BigDecimal(1000), RSD));
-            activeService.changeActive(Money.of(new BigDecimal(100), EUR));
-        }
+        orderRepository.deleteAll();
+        activeRepository.deleteAll();
+        authService.deleteUser("admin@gmail.com");
+        authService.registerUser("admin@gmail.com", "admin");
         UserDetails user = new User(
                 "admin@gmail.com",
                 "admin",  // пароль можно закодировать через PasswordEncoder
@@ -69,8 +71,12 @@ public class FreedomexchangeApplication {
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(auth);
         SecurityContextHolder.setContext(context);
+        activeService.changeActive(Money.of(new BigDecimal(10000), RUB));
+        activeService.changeActive(Money.of(new BigDecimal(1000), RSD));
+        activeService.changeActive(Money.of(new BigDecimal(100), EUR));
 
-        orderRepository.deleteAll();
+
+
         for (int i = 0; i < 100; ++i) {
             for (int j = 0; j < random.nextInt(10); ++j) {
 //                Order order = new Order();

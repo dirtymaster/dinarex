@@ -7,8 +7,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
-import javax.money.Monetary;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 import static dirtymaster.freedomexchange.constant.CurrencyUnitConstants.RSD;
 import static dirtymaster.freedomexchange.constant.CurrencyUnitConstants.RUB;
@@ -16,15 +16,15 @@ import static dirtymaster.freedomexchange.constant.CurrencyUnitConstants.RUB;
 @Controller
 @RequiredArgsConstructor
 @Slf4j
-public class MyController {
+public class MainPageController {
     private final OrderService orderService;
 
     @GetMapping("/")
     public String index(Model model) {
-        BigDecimal rubRsdRate = orderService.getRate(RUB, RSD);
-        BigDecimal rsdRubRate = orderService.getRate(RSD, RUB);
-        model.addAttribute("rubRsdRate", rubRsdRate);
-        model.addAttribute("rsdRubRate", rsdRubRate);
+        BigDecimal rubRsdRate = orderService.findFirstByCurrencyToSellAndCurrencyToBuyOrderByRateAsc(RUB, RSD);
+        BigDecimal rsdRubRate = orderService.findTopRateByCurrencyToSellAndCurrencyToBuy(RSD, RUB);
+        model.addAttribute("rubRsdRate", rubRsdRate.setScale(6, RoundingMode.HALF_UP));
+        model.addAttribute("rsdRubRate", rsdRubRate.setScale(6, RoundingMode.HALF_UP));
         return "index";
     }
 }
