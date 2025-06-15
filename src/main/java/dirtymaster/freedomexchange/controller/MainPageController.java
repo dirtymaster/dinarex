@@ -5,10 +5,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.GetMapping;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Map;
 
 import static dirtymaster.freedomexchange.constant.CurrencyUnitConstants.RSD;
 import static dirtymaster.freedomexchange.constant.CurrencyUnitConstants.RUB;
@@ -21,10 +23,7 @@ public class MainPageController {
 
     @GetMapping("/")
     public String index(Model model) {
-        BigDecimal rubRsdRate = orderService.findFirstByCurrencyToSellAndCurrencyToBuyOrderByRateAsc(RUB, RSD);
-        BigDecimal rsdRubRate = orderService.findTopRateByCurrencyToSellAndCurrencyToBuy(RSD, RUB);
-        model.addAttribute("rubRsdRate", rubRsdRate.setScale(6, RoundingMode.HALF_UP));
-        model.addAttribute("rsdRubRate", rsdRubRate.setScale(6, RoundingMode.HALF_UP));
+        orderService.getIndexPageModel().forEach(model::addAttribute);
         return "index";
     }
 }

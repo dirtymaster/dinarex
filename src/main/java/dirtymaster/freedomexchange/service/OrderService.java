@@ -23,6 +23,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 
+import static dirtymaster.freedomexchange.constant.CurrencyUnitConstants.RSD;
+import static dirtymaster.freedomexchange.constant.CurrencyUnitConstants.RUB;
+
 @Service
 @RequiredArgsConstructor
 public class OrderService {
@@ -30,6 +33,15 @@ public class OrderService {
     private final AuthService authService;
     private final ActiveService activeService;
     private final OrdersConfig ordersConfig;
+
+    public Map<String, Object> getIndexPageModel() {
+        Map<String, Object> modelMap = new HashMap<>();
+        BigDecimal rubRsdRate = findFirstByCurrencyToSellAndCurrencyToBuyOrderByRateAsc(RUB, RSD);
+        BigDecimal rsdRubRate = findTopRateByCurrencyToSellAndCurrencyToBuy(RSD, RUB);
+        modelMap.put("rubRsdRate", rubRsdRate.setScale(6, RoundingMode.HALF_UP));
+        modelMap.put("rsdRubRate", rsdRubRate.setScale(6, RoundingMode.HALF_UP));
+        return modelMap;
+    }
 
     public Map<String, Object> getOrders(CurrencyUnit currencyToSell, CurrencyUnit currencyToBuy) {
         List<SummedOrder> sellOrders = get50Orders(currencyToSell, currencyToBuy, SortingType.ASC);
@@ -47,12 +59,12 @@ public class OrderService {
         return responseMap;
     }
 
-    public BigDecimal findTopRateByCurrencyToSellAndCurrencyToBuy(CurrencyUnit currencyToSell, CurrencyUnit currencyToBuy) {
+    private BigDecimal findTopRateByCurrencyToSellAndCurrencyToBuy(CurrencyUnit currencyToSell, CurrencyUnit currencyToBuy) {
         BigDecimal rate = orderRepository.findTopRateByCurrencyToSellAndCurrencyToBuy(currencyToSell, currencyToBuy).getRate();
         return rate.compareTo(BigDecimal.ONE) < 0 ? invertValue(rate) : rate;
     }
 
-    public BigDecimal findFirstByCurrencyToSellAndCurrencyToBuyOrderByRateAsc(CurrencyUnit currencyToSell, CurrencyUnit currencyToBuy) {
+    private BigDecimal findFirstByCurrencyToSellAndCurrencyToBuyOrderByRateAsc(CurrencyUnit currencyToSell, CurrencyUnit currencyToBuy) {
         BigDecimal rate = orderRepository.findFirstByCurrencyToSellAndCurrencyToBuyOrderByRateAsc(currencyToSell, currencyToBuy).getRate();
         return rate.compareTo(BigDecimal.ONE) < 0 ? invertValue(rate) : rate;
     }
@@ -97,7 +109,7 @@ public class OrderService {
                     break;
                 }
                 if (isMarket && !selectedOrders.isEmpty()) {
-                    BigDecimal ordersRateRatio = selectedOrders.getFirst().getRate().divide(order.getRate(), 20, RoundingMode.HALF_UP);
+                    BigDecimal ordersRateRatio = selectedOrders.get(0).getRate().divide(order.getRate(), 20, RoundingMode.HALF_UP);
                     if (ordersRateRatio.compareTo(ordersConfig.getLowLiquidityRatio()) < 0) {
                         throw new LowLiquidityException("ordersRateRatio: %s, lowLiquidityRatio: %s".formatted(ordersRateRatio, ordersConfig.getLowLiquidityRatio()));
                     }
@@ -137,7 +149,7 @@ public class OrderService {
                 newOrder.getActiveToSell().subtractAmount(amountCurrentUserSelling);
             // Если сумма в существующих ордерах превышает сумму в новом
             } else {
-                Order lastOrder = selectedOrders.getLast();
+                Order lastOrder = selectedOrders.get(selectedOrders.size() - 1);
                 BigDecimal amountMatchedForLastOrder = summedAmountInCurrencyCurrentUserSelling.subtract(amountCurrentUserSelling);
                 lastOrder.setNotCompletedAmountInCurrency(amountMatchedForLastOrder, currencyCurrentUserSelling);
                 lastOrder.getActiveToBuy().addAmount(amountMatchedForLastOrder);
@@ -194,7 +206,7 @@ public class OrderService {
     }
 
     private boolean normalizeRates(List<SummedOrder> summedOrders) {
-        if (summedOrders.getFirst().getRate().compareTo(BigDecimal.ONE) < 0) {
+        if (summedOrders.get(0).getRate().compareTo(BigDecimal.ONE) < 0) {
             summedOrders.forEach(summedOrder ->
                     summedOrder.setRate(invertValue(summedOrder.getRate())));
             return true;

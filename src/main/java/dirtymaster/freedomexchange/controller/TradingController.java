@@ -1,10 +1,9 @@
 package dirtymaster.freedomexchange.controller;
 
-import dirtymaster.freedomexchange.config.OrdersConfig;
 import dirtymaster.freedomexchange.constant.CurrencyUnitConstants;
 import dirtymaster.freedomexchange.dto.OrderType;
 import dirtymaster.freedomexchange.service.ActiveService;
-import dirtymaster.freedomexchange.service.OrderService;
+import dirtymaster.freedomexchange.service.TradingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -22,9 +21,8 @@ import java.util.List;
 @RequestMapping("/trading")
 @RequiredArgsConstructor
 public class TradingController {
+    private final TradingService tradingService;
     private final ActiveService activeService;
-    private final OrderService orderService;
-    private final OrdersConfig ordersConfig;
 
     @GetMapping
     public String tradingPage() {
@@ -41,26 +39,7 @@ public class TradingController {
                     ? availableCurrencies.get(1) : availableCurrencies.get(0);
             return "redirect:/trading/%s/%s".formatted(currencyToSell, currencyToBuy);
         }
-        model.addAttribute("orderType", orderType.name());
-        BigDecimal orderCommission = orderType == OrderType.MARKET ?
-                ordersConfig.getMarketOrderCommission() : ordersConfig.getLimitOrderCommission();
-        model.addAttribute("orderCommission", orderCommission);
-        List<String> currencyNames = availableCurrencies.stream()
-                .map(CurrencyUnit::getCurrencyCode)
-                .toList();
-        model.addAttribute("currenciesToSell", currencyNames);
-        model.addAttribute("activeCurrencyToSell", currencyToSell.getCurrencyCode());
-        model.addAttribute("activeCurrencyToBuy", currencyToBuy.getCurrencyCode());
-        model.addAttribute("currenciesToBuy",
-                CurrencyUnitConstants.availableCurrencies.stream()
-                        .filter(c -> !c.equals(currencyToSell))
-                        .toList());
-
-        // Get user balances
-        BigDecimal currencyToSellBalance = activeService.getActiveAmountByCurrency(currencyToSell);
-        model.addAttribute("currencyToSellBalance", currencyToSellBalance);
-        BigDecimal currencyToBuyBalance = activeService.getActiveAmountByCurrency(currencyToBuy);
-        model.addAttribute("currencyToBuyBalance", currencyToBuyBalance);
+        tradingService.getTradePageModel(currencyToSell, currencyToBuy, orderType).forEach(model::addAttribute);
 
         return "trading";
     }

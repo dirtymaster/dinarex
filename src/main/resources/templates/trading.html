@@ -27,7 +27,7 @@
             <div class="base-currencies">
                 <th:block th:each="currencyToSell : ${currenciesToSell}">
                     <a th:href="@{/trading/{currencyToSell}/{currencyToBuy}(currencyToSell=${currencyToSell}, currencyToBuy=${activeCurrencyToBuy})}">
-                        <button th:text="${currencyToSell}" th:class="'currency-btn' + (${currencyToSell} == ${activeCurrencyToSell} ? ' active' : '')"></button>
+                        <button th:text="${currencyToSell}" th:class="'currency-btn' + (${currencyToSell} == ${activeCurrencyToSell.getCurrencyCode()} ? ' active' : '')"></button>
                     </a>
                 </th:block>
             </div>

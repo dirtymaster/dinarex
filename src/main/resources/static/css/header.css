@@ -15,6 +15,10 @@ header {
     color: white;
 }
 
+.logo-ex {
+    color: #38b67c;
+}
+
 nav {
     display: flex;
     align-items: center;
