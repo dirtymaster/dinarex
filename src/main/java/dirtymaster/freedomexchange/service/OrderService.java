@@ -84,91 +84,138 @@ public class OrderService {
     @Transactional
     public Order processOrder(CurrencyUnit currencyCurrentUserSelling, CurrencyUnit currencyCurrentUserBuying,
                               OrderType orderType, BigDecimal amountCurrentUserSelling, BigDecimal rate) {
+
+        validateInput(orderType, rate);
+
         boolean isMarket = orderType == OrderType.MARKET;
-        if (!isMarket && rate == null) {
-            throw new IllegalArgumentException("Rate is required for limit order");
-        }
-
         Order newOrder = createOrder(currencyCurrentUserSelling, currencyCurrentUserBuying, orderType, amountCurrentUserSelling, rate);
-        if (newOrder.getActiveToSell().getMonetaryAmount().isLessThan(Money.of(amountCurrentUserSelling, currencyCurrentUserSelling))) {
-            throw new IllegalArgumentException("Not enough funds");
-        }
+        validateFunds(newOrder, currencyCurrentUserSelling, amountCurrentUserSelling);
 
-        BigDecimal invertedRate = invertValue(rate);
-        List<Order> orders = isMarket ?
-                orderRepository.findByCompletedAndCurrencyToSellAndCurrencyToBuyOrderByRateDesc(
-                        false, currencyCurrentUserBuying, currencyCurrentUserSelling)
-                : orderRepository.findByCompletedAndCurrencyToSellAndCurrencyToBuyAndRateGreaterThanEqualOrderByRateDesc(
-                        false, currencyCurrentUserBuying, currencyCurrentUserSelling, invertedRate);
-        if (!orders.isEmpty()) {
-            // Сумма в существующих ордерах в валюте, которую продает текущий пользователь.
-            BigDecimal summedAmountInCurrencyCurrentUserSelling = BigDecimal.ZERO;
-            List<Order> selectedOrders = new ArrayList<>();
-            for (Order order : orders) {
-                if (summedAmountInCurrencyCurrentUserSelling.compareTo(amountCurrentUserSelling) >= 0) {
-                    break;
-                }
-                if (isMarket && !selectedOrders.isEmpty()) {
-                    BigDecimal ordersRateRatio = selectedOrders.get(0).getRate().divide(order.getRate(), 20, RoundingMode.HALF_UP);
-                    if (ordersRateRatio.compareTo(ordersConfig.getLowLiquidityRatio()) < 0) {
-                        throw new LowLiquidityException("ordersRateRatio: %s, lowLiquidityRatio: %s".formatted(ordersRateRatio, ordersConfig.getLowLiquidityRatio()));
-                    }
-                }
-
-                selectedOrders.add(order);
-                BigDecimal notCompletedInAmountCurrentUserSelling = order.getNotCompletedAmountInCurrency(currencyCurrentUserSelling);
-                summedAmountInCurrencyCurrentUserSelling = summedAmountInCurrencyCurrentUserSelling.add(notCompletedInAmountCurrentUserSelling);
-            }
-
-            // Если сумма в существующих ордерах меньше, чем в новом
-            if (summedAmountInCurrencyCurrentUserSelling.compareTo(amountCurrentUserSelling) < 0) {
-                BigDecimal totalWeightedRate = BigDecimal.ZERO;
-                BigDecimal totalAmount = BigDecimal.ZERO;
-                for (Order order : selectedOrders) {
-                    BigDecimal notCompletedAmount = order.getNotCompletedAmountInCurrency(order.getCurrencyToSell());
-                    totalWeightedRate = totalWeightedRate.add(order.getRate().multiply(notCompletedAmount));
-                    totalAmount = totalAmount.add(notCompletedAmount);
-                }
-                BigDecimal averageRate = totalWeightedRate.divide(totalAmount, 20, RoundingMode.HALF_UP);
-                selectedOrders.forEach(this::successfulComplete);
-
-                newOrder.setCompletedAmountToSell(summedAmountInCurrencyCurrentUserSelling);
-                newOrder.getActiveToBuy().addAmount(summedAmountInCurrencyCurrentUserSelling.multiply(averageRate));
-
-                if (isMarket) {
-                    newOrder.getActiveToSell().subtractAmount(summedAmountInCurrencyCurrentUserSelling);
-                    newOrder.setCompleted(true);
-                } else {
-                    newOrder.getActiveToSell().subtractAmount(amountCurrentUserSelling);
-                }
-            // Если сумма в существующих ордерах точно равна сумме в новом
-            } else if (summedAmountInCurrencyCurrentUserSelling.compareTo(amountCurrentUserSelling) == 0) {
-                selectedOrders.forEach(this::successfulComplete);
-                successfulComplete(newOrder);
-
-                newOrder.getActiveToSell().subtractAmount(amountCurrentUserSelling);
-            // Если сумма в существующих ордерах превышает сумму в новом
-            } else {
-                Order lastOrder = selectedOrders.get(selectedOrders.size() - 1);
-                BigDecimal amountMatchedForLastOrder = summedAmountInCurrencyCurrentUserSelling.subtract(amountCurrentUserSelling);
-                lastOrder.setNotCompletedAmountInCurrency(amountMatchedForLastOrder, currencyCurrentUserSelling);
-                lastOrder.getActiveToBuy().addAmount(amountMatchedForLastOrder);
-
-                IntStream.range(0, selectedOrders.size() - 1)
-                        .forEach(i -> successfulComplete(selectedOrders.get(i)));
-
-                successfulComplete(newOrder);
-
-                newOrder.getActiveToSell().subtractAmount(amountCurrentUserSelling);
-            }
-            orderRepository.saveAll(selectedOrders);
+        List<Order> matchedOrders = findMatchingOrders(isMarket, currencyCurrentUserBuying, currencyCurrentUserSelling, rate);
+        if (!matchedOrders.isEmpty()) {
+            return matchOrders(isMarket, newOrder, matchedOrders, currencyCurrentUserSelling, amountCurrentUserSelling);
         } else if (isMarket) {
             throw new RuntimeException("Order book is empty");
         } else {
             newOrder.getActiveToSell().subtractAmount(amountCurrentUserSelling);
         }
+
         return orderRepository.save(newOrder);
     }
+
+    private void validateInput(OrderType orderType, BigDecimal rate) {
+        if (orderType != OrderType.MARKET && rate == null) {
+            throw new IllegalArgumentException("Rate is required for limit order");
+        }
+    }
+
+    private void validateFunds(Order newOrder, CurrencyUnit currencyCurrentUserSelling, BigDecimal amountCurrentUserSelling) {
+        if (newOrder.getActiveToSell().getMonetaryAmount().isLessThan(Money.of(amountCurrentUserSelling, currencyCurrentUserSelling))) {
+            throw new IllegalArgumentException("Not enough funds");
+        }
+    }
+
+    private List<Order> findMatchingOrders(boolean isMarket, CurrencyUnit currencyToSell, CurrencyUnit currencyToBuy, BigDecimal rate) {
+        BigDecimal invertedRate = invertValue(rate);
+        return isMarket
+                ? orderRepository.findByCompletedAndCurrencyToSellAndCurrencyToBuyOrderByRateDesc(false, currencyToBuy, currencyToSell)
+                : orderRepository.findByCompletedAndCurrencyToSellAndCurrencyToBuyAndRateGreaterThanEqualOrderByRateDesc(
+                false, currencyToBuy, currencyToSell, invertedRate);
+    }
+
+    private Order matchOrders(boolean isMarket, Order newOrder, List<Order> orders,
+                              CurrencyUnit currencyCurrentUserSelling, BigDecimal amountCurrentUserSelling) {
+
+        List<Order> selectedOrders = selectMatchingOrders(isMarket, orders, currencyCurrentUserSelling, amountCurrentUserSelling);
+        BigDecimal matchedAmount = calculateMatchedAmount(selectedOrders, currencyCurrentUserSelling);
+
+        if (matchedAmount.compareTo(amountCurrentUserSelling) < 0) {
+            processPartialMatch(newOrder, selectedOrders, matchedAmount, amountCurrentUserSelling, isMarket);
+        } else if (matchedAmount.compareTo(amountCurrentUserSelling) == 0) {
+            processFullMatch(newOrder, selectedOrders, amountCurrentUserSelling);
+        } else {
+            processExcessMatch(newOrder, selectedOrders, matchedAmount, amountCurrentUserSelling, currencyCurrentUserSelling);
+        }
+
+        orderRepository.saveAll(selectedOrders);
+        return newOrder;
+    }
+
+    private List<Order> selectMatchingOrders(boolean isMarket, List<Order> orders,
+                                             CurrencyUnit currencyCurrentUserSelling, BigDecimal amountToMatch) {
+        List<Order> selected = new ArrayList<>();
+        BigDecimal total = BigDecimal.ZERO;
+
+        for (Order order : orders) {
+            if (total.compareTo(amountToMatch) >= 0) break;
+
+            if (isMarket && !selected.isEmpty()) {
+                BigDecimal rateRatio = selected.get(0).getRate().divide(order.getRate(), 20, RoundingMode.HALF_UP);
+                if (rateRatio.compareTo(ordersConfig.getLowLiquidityRatio()) < 0) {
+                    throw new LowLiquidityException("ordersRateRatio: %s, lowLiquidityRatio: %s".formatted(rateRatio, ordersConfig.getLowLiquidityRatio()));
+                }
+            }
+
+            selected.add(order);
+            total = total.add(order.getNotCompletedAmountInCurrency(currencyCurrentUserSelling));
+        }
+
+        return selected;
+    }
+
+    private BigDecimal calculateMatchedAmount(List<Order> selectedOrders, CurrencyUnit currencyCurrentUserSelling) {
+        return selectedOrders.stream()
+                .map(o -> o.getNotCompletedAmountInCurrency(currencyCurrentUserSelling))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private void processPartialMatch(Order newOrder, List<Order> selectedOrders, BigDecimal matchedAmount,
+                                     BigDecimal requestedAmount, boolean isMarket) {
+        BigDecimal totalWeightedRate = BigDecimal.ZERO;
+        BigDecimal totalAmount = BigDecimal.ZERO;
+
+        for (Order order : selectedOrders) {
+            BigDecimal notCompleted = order.getNotCompletedAmountInCurrency(order.getCurrencyToSell());
+            totalWeightedRate = totalWeightedRate.add(order.getRate().multiply(notCompleted));
+            totalAmount = totalAmount.add(notCompleted);
+        }
+
+        BigDecimal averageRate = totalWeightedRate.divide(totalAmount, 20, RoundingMode.HALF_UP);
+
+        selectedOrders.forEach(this::successfulComplete);
+        newOrder.setCompletedAmountToSell(matchedAmount);
+        newOrder.getActiveToBuy().addAmount(matchedAmount.multiply(averageRate));
+
+        if (isMarket) {
+            newOrder.getActiveToSell().subtractAmount(matchedAmount);
+            newOrder.setCompleted(true);
+        } else {
+            newOrder.getActiveToSell().subtractAmount(requestedAmount);
+        }
+    }
+
+    private void processFullMatch(Order newOrder, List<Order> selectedOrders, BigDecimal amountCurrentUserSelling) {
+        selectedOrders.forEach(this::successfulComplete);
+        successfulComplete(newOrder);
+        newOrder.getActiveToSell().subtractAmount(amountCurrentUserSelling);
+    }
+
+    private void processExcessMatch(Order newOrder, List<Order> selectedOrders, BigDecimal matchedAmount,
+                                    BigDecimal requestedAmount, CurrencyUnit currencyCurrentUserSelling) {
+
+        Order lastOrder = selectedOrders.get(selectedOrders.size() - 1);
+        BigDecimal excess = matchedAmount.subtract(requestedAmount);
+
+        lastOrder.setNotCompletedAmountInCurrency(excess, currencyCurrentUserSelling);
+        lastOrder.getActiveToBuy().addAmount(excess);
+
+        IntStream.range(0, selectedOrders.size() - 1)
+                .forEach(i -> successfulComplete(selectedOrders.get(i)));
+
+        successfulComplete(newOrder);
+        newOrder.getActiveToSell().subtractAmount(requestedAmount);
+    }
+
 
     public Order createOrder(CurrencyUnit currencyToSell, CurrencyUnit currencyToBuy, OrderType orderType,
                              BigDecimal totalAmountToBuy, BigDecimal rate) {
